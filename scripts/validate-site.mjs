@@ -142,7 +142,7 @@ for (const requiredFeature of ["PUBLIC_DATA_URL", "loadPublicData", "availabilit
 
 const dataFile = JSON.parse(readFileSync("data/agenda.json", "utf8"));
 if (dataFile.schemaVersion !== 1 || !Array.isArray(dataFile.products) ||
-    !dataFile.availability || dataFile.availability.enabled !== false || typeof dataFile.availability.days !== "object" ||
+    !dataFile.availability || typeof dataFile.availability.enabled !== "boolean" || typeof dataFile.availability.days !== "object" ||
     !Object.prototype.hasOwnProperty.call(dataFile, "privateAgenda")) {
   throw new Error("data/agenda.json não possui a estrutura pública/privada esperada.");
 }

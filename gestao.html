@@ -39,7 +39,7 @@
     </div>
     <div class="calendar-weekdays" aria-hidden="true"><span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span></div>
     <div class="calendar-grid" id="calendarGrid" aria-label="Calendário mensal"></div>
-    <div class="calendar-legend"><span><i class="legend-dot booked"></i> Dia com festa</span><span><i class="legend-dot selected"></i> Dia selecionado</span></div>
+    <div class="calendar-legend"><span><i class="legend-dot booked"></i> Dia com festa</span><span><i class="legend-dot blocked"></i> Dia com peça bloqueada</span><span><i class="legend-dot selected"></i> Dia selecionado</span></div>
     <div class="day-events">
       <div class="day-events-heading"><div><span class="card-kicker">Festas do dia selecionado</span><h3 id="selectedDateTitle">—</h3></div><button class="button button-primary" id="newEventForDate" type="button">+ Agendar festa</button></div>
       <div id="bookingsForDate" class="booking-list" aria-live="polite"></div>
@@ -58,6 +58,7 @@
       <label>Tipo de evento<select name="eventType"><option>Aniversário</option><option>Casamento</option><option>Chá de bebê / revelação</option><option>Batizado</option><option>Confraternização</option><option>Outro</option></select></label>
       <label>Bairro / região<input name="neighborhood" maxlength="80" placeholder="Local do evento (opcional)"></label>
       <label>Situação<select name="status"><option value="confirmada">Confirmada</option><option value="orcamento">Em negociação</option><option value="cancelada">Cancelada</option><option value="concluida">Concluída</option></select></label>
+      <p class="wide management-help inventory-rule-note">Festas confirmadas e em negociação reservam estoque. Ao cancelar, as peças são liberadas. Festas concluídas permanecem no histórico.</p>
       <label class="wide">Observações internas<textarea name="notes" rows="2" maxlength="400" placeholder="Horário, tema, montagem ou detalhes operacionais. Não inclua dados pessoais."></textarea></label>
       <div class="wide event-items-editor">
         <div class="inline-heading"><div><strong>Peças reservadas para esta festa</strong><small>Escolha os painéis, móveis ou objetos que sairão para o evento.</small></div><button class="button button-soft" id="addEventItem" type="button">+ Adicionar peça</button></div>

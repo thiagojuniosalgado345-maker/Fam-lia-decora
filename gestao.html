@@ -100,6 +100,8 @@
   <section class="management-card backup-card">
     <span class="card-kicker">Importante</span><h2>Como a disponibilidade é calculada</h2>
     <p>Para cada data, o sistema soma as quantidades reservadas nas festas não canceladas e os bloqueios manuais. Uma nova festa só é salva quando a quantidade pedida não ultrapassa o estoque físico. Festas diferentes no mesmo dia aparecem separadamente. O arquivo público contém somente o catálogo e os totais de disponibilidade; os detalhes das festas e bloqueios são criptografados antes do envio ao GitHub.</p>
+    <div class="form-actions backup-actions"><button class="button button-soft" id="exportAgenda" type="button">Baixar cópia completa da agenda (JSON)</button><label class="button button-soft file-button">Restaurar cópia completa<input id="importBackup" type="file" accept="application/json,.json"></label></div>
+    <p class="github-security-note">A cópia completa é descriptografada para permitir restauração. Guarde o arquivo em local privado e não o envie por mensagens públicas.</p>
   </section>
 </main>
 <script src="gestao.js"></script>

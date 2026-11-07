@@ -27,7 +27,7 @@ O site não grava nome, telefone ou detalhes do evento. Os dados só são prepar
 ## Limitações importantes da área da equipe
 \`gestao.html\` é uma ferramenta provisória local, sem autenticação. Catálogo e datas são salvos no \`localStorage\` do navegador atual. As alterações não são compartilhadas entre celulares/computadores nem entre usuários. O painel não é seguro para uso comercial ou dados de clientes; qualquer pessoa que descubra o endereço pode abrir a página. A remoção do link público e a instrução \`noindex\` não substituem login.
 
-Os pedidos enviados pelo WhatsApp não aparecem automaticamente no painel. As datas anotadas não bloqueiam reservas e não consultam disponibilidade.
+Os pedidos enviados pelo Instagram ou WhatsApp não aparecem automaticamente no painel. As datas anotadas não bloqueiam reservas e não consultam disponibilidade.
 
 Para gestão real, é necessário conectar um backend (por exemplo, Supabase), configurar autenticação, políticas de acesso e tabelas para produtos, estoque, datas, pedidos e status. Não inserir chaves administrativas no JavaScript público.
 

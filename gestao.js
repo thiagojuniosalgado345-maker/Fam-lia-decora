@@ -1,17 +1,44 @@
-/* Área local de demonstração. Não oferece autenticação nem sincronização entre aparelhos. */
+/* Agenda e estoque local de demonstração da Família Decora.
+   Não substitui banco de dados, autenticação ou sincronização entre aparelhos. */
 const PRODUCT_KEY = "familia-decora-products-v2";
-const BLOCK_KEY = "familia-decora-blocked-dates-v1";
+const EVENT_KEY = "familia-decora-events-v1";
+const UNAVAILABLE_KEY = "familia-decora-unavailable-items-v1";
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1519225421980-888cb4c1e12c?auto=format&fit=crop&w=900&q=80";
 const DEFAULT = [
-  {id:"kit-pequeno",name:"Kit Pegue e Monte",category:"Kits",tag:"Kit para festa",description:"Uma seleção prática de peças para montar uma comemoração do seu jeito.",image:"https://images.unsplash.com/photo-1519225421980-888cb4c1e12c?auto=format&fit=crop&w=1000&q=85"},
-  {id:"kit-mini-table",name:"Mini table",category:"Kits",tag:"Comemoração intimista",description:"Uma composição compacta para aniversários e encontros especiais.",image:"https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?auto=format&fit=crop&w=1000&q=85"},
-  {id:"paineis",name:"Painéis decorativos",category:"Painéis",tag:"Cenário",description:"Painéis para dar destaque ao tema e criar o cenário da comemoração.",image:"https://images.unsplash.com/photo-1530103862676-de8c9debad1d?auto=format&fit=crop&w=1000&q=85"},
-  {id:"cilindros",name:"Cilindros decorativos",category:"Móveis",tag:"Peças avulsas",description:"Peças de diferentes alturas para montar uma composição personalizada.",image:"https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1000&q=85"},
-  {id:"mesa",name:"Mesas para decoração",category:"Móveis",tag:"Peças avulsas",description:"Móveis de apoio para destacar bolo, doces e outros elementos decorativos.",image:"https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=1000&q=85"},
-  {id:"pecas",name:"Bandejas e acessórios",category:"Peças",tag:"Complemente sua festa",description:"Detalhes para completar kits ou criar uma decoração com a sua identidade.",image:"https://images.unsplash.com/photo-1523438885200-e635ba2c371e?auto=format&fit=crop&w=1000&q=85"}
+  {id:"kit-pequeno",name:"Kit Pegue e Monte",category:"Kits",tag:"Kit para festa",description:"Uma seleção prática de peças para montar uma comemoração do seu jeito.",image:"https://images.unsplash.com/photo-1519225421980-888cb4c1e12c?auto=format&fit=crop&w=1000&q=85",stock:1},
+  {id:"kit-mini-table",name:"Mini table",category:"Kits",tag:"Comemoração intimista",description:"Uma composição compacta para aniversários e encontros especiais.",image:"https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?auto=format&fit=crop&w=1000&q=85",stock:1},
+  {id:"paineis",name:"Painéis decorativos",category:"Painéis",tag:"Cenário",description:"Painéis para dar destaque ao tema e criar o cenário da comemoração.",image:"https://images.unsplash.com/photo-1530103862676-de8c9debad1d?auto=format&fit=crop&w=1000&q=85",stock:1},
+  {id:"cilindros",name:"Cilindros decorativos",category:"Móveis",tag:"Peças avulsas",description:"Peças de diferentes alturas para montar uma composição personalizada.",image:"https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1000&q=85",stock:1},
+  {id:"mesa",name:"Mesas para decoração",category:"Móveis",tag:"Peças avulsas",description:"Móveis de apoio para destacar bolo, doces e outros elementos decorativos.",image:"https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=1000&q=85",stock:1},
+  {id:"pecas",name:"Bandejas e acessórios",category:"Peças",tag:"Complemente sua festa",description:"Detalhes para completar kits ou criar uma decoração com a sua identidade.",image:"https://images.unsplash.com/photo-1523438885200-e635ba2c371e?auto=format&fit=crop&w=1000&q=85",stock:1}
 ];
 const $ = id => document.getElementById(id);
 const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
+const validId = value => /^[a-zA-Z0-9_-]{1,120}$/.test(String(value || ""));
+const validDate = value => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ""))) return false;
+  const parts = value.split("-").map(Number);
+  const date = new Date(parts[0], parts[1] - 1, parts[2]);
+  return date.getFullYear() === parts[0] && date.getMonth() === parts[1] - 1 && date.getDate() === parts[2];
+};
+function localDateISO(date = new Date()) {
+  return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0")].join("-");
+}
+function dateFromISO(value) {
+  const parts = value.split("-").map(Number);
+  return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+function shiftDate(value, amount) {
+  const date = dateFromISO(value);
+  date.setDate(date.getDate() + amount);
+  return localDateISO(date);
+}
+function randomId(prefix) {
+  const suffix = window.crypto && typeof window.crypto.randomUUID === "function"
+    ? window.crypto.randomUUID()
+    : String(Date.now()) + "-" + Math.random().toString(16).slice(2);
+  return prefix + "-" + suffix;
+}
 function readStorage(key, fallback) {
   try {
     const value = JSON.parse(localStorage.getItem(key));
@@ -45,14 +72,16 @@ function normalizeProduct(product) {
   const category = String(product.category || "").trim().slice(0, 40);
   const description = String(product.description || "").trim().slice(0, 180);
   const image = safeImage(product.image);
-  if (!/^[a-zA-Z0-9_-]{1,100}$/.test(id) || !name || !category || !description || !image) return null;
+  const stock = Number(product.stock ?? 1);
+  if (!validId(id) || !name || !category || !description || !image || !Number.isInteger(stock) || stock < 1 || stock > 100) return null;
   return {
     id,
     name,
     category,
     tag: String(product.tag || "Consulte").trim().slice(0, 35),
     description,
-    image
+    image,
+    stock
   };
 }
 function normalizeCatalog(value) {
@@ -63,48 +92,298 @@ function normalizeCatalog(value) {
   if (new Set(ids).size !== ids.length) return null;
   return normalized;
 }
-function localDateISO() {
-  const date = new Date();
-  return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0")].join("-");
+let products = normalizeCatalog(readStorage(PRODUCT_KEY, DEFAULT)) ?? DEFAULT.slice();
+function normalizeEvents(value) {
+  if (!Array.isArray(value) || value.length > 3000) return [];
+  const ids = new Set();
+  return value.filter(event => {
+    if (!event || typeof event !== "object") return false;
+    const id = String(event.id || "");
+    const client = String(event.client || "").trim();
+    const status = ["confirmada", "orcamento", "cancelada", "concluida"].includes(event.status) ? event.status : "confirmada";
+    const items = Array.isArray(event.items) ? event.items : [];
+    if (!validId(id) || ids.has(id) || !client || !validDate(event.date) || items.length > 40) return false;
+    const cleanItems = items.map(item => ({
+      productId: String(item.productId || ""),
+      quantity: Number(item.quantity)
+    })).filter(item => validId(item.productId) && Number.isInteger(item.quantity) && item.quantity > 0 && item.quantity <= 100 && products.some(product => product.id === item.productId));
+    if (cleanItems.length !== items.length) return false;
+    ids.add(id);
+    event._clean = {
+      id,
+      client: client.slice(0, 80),
+      date: event.date,
+      eventType: String(event.eventType || "Outro").slice(0, 50),
+      neighborhood: String(event.neighborhood || "").trim().slice(0, 80),
+      status,
+      notes: String(event.notes || "").trim().slice(0, 400),
+      items: cleanItems
+    };
+    return true;
+  }).map(event => event._clean);
 }
-let storedProducts = readStorage(PRODUCT_KEY, DEFAULT);
-let products = normalizeCatalog(storedProducts) ?? DEFAULT.slice();
-let blocked = readStorage(BLOCK_KEY, []);
-if (!Array.isArray(blocked)) blocked = [];
-blocked = blocked.filter(item => item && /^\d{4}-\d{2}-\d{2}$/.test(item.date)).map(item => ({
-  date: item.date,
-  note: String(item.note || "").slice(0, 100)
-}));
-let editingId = null;
+function normalizeUnavailable(value) {
+  if (!Array.isArray(value) || value.length > 3000) return [];
+  const ids = new Set();
+  return value.filter(item => {
+    if (!item || typeof item !== "object") return false;
+    const id = String(item.id || "");
+    const quantity = Number(item.quantity);
+    if (!validId(id) || ids.has(id) || !products.some(product => product.id === item.productId) ||
+        !Number.isInteger(quantity) || quantity < 1 || quantity > 100 ||
+        !validDate(item.startDate) || !validDate(item.endDate) || item.endDate < item.startDate) return false;
+    ids.add(id);
+    return true;
+  }).map(item => ({
+    id: String(item.id),
+    productId: String(item.productId),
+    quantity: Number(item.quantity),
+    startDate: item.startDate,
+    endDate: item.endDate,
+    reason: String(item.reason || "Indisponível").trim().slice(0, 120)
+  }));
+}
+let events = normalizeEvents(readStorage(EVENT_KEY, []));
+let unavailable = normalizeUnavailable(readStorage(UNAVAILABLE_KEY, []));
+let editingProductId = null;
+let editingEventId = null;
+let eventItemsState = [];
+let selectedDate = localDateISO();
+let currentMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
+function getProduct(id) {
+  return products.find(product => product.id === id);
+}
+function eventUsesInventory(event) {
+  return event.status !== "cancelada" && event.status !== "concluida";
+}
+function bookedQuantity(productId, date, excludeEventId) {
+  return events.reduce((total, event) => {
+    if (event.id === excludeEventId || event.date !== date || !eventUsesInventory(event)) return total;
+    return total + event.items.filter(item => item.productId === productId).reduce((sum, item) => sum + item.quantity, 0);
+  }, 0);
+}
+function blockedQuantity(productId, date, excludeBlockId) {
+  return unavailable.reduce((total, item) => {
+    if (item.id === excludeBlockId || item.productId !== productId || date < item.startDate || date > item.endDate) return total;
+    return total + item.quantity;
+  }, 0);
+}
+function availableQuantity(productId, date, excludeEventId) {
+  const product = getProduct(productId);
+  if (!product) return 0;
+  return Math.max(0, product.stock - bookedQuantity(productId, date, excludeEventId) - blockedQuantity(productId, date));
+}
+function maximumUsedQuantity(productId) {
+  const dates = new Set();
+  events.filter(event => eventUsesInventory(event) && event.items.some(item => item.productId === productId)).forEach(event => dates.add(event.date));
+  unavailable.filter(item => item.productId === productId).forEach(item => {
+    let date = item.startDate;
+    let count = 0;
+    while (date <= item.endDate && count < 740) {
+      dates.add(date);
+      date = shiftDate(date, 1);
+      count += 1;
+    }
+  });
+  let maximum = 0;
+  dates.forEach(date => {
+    maximum = Math.max(maximum, bookedQuantity(productId, date, null) + blockedQuantity(productId, date, null));
+  });
+  return maximum;
+}
+function saveEvents() {
+  return writeStorage(EVENT_KEY, events);
+}
+function saveUnavailable() {
+  return writeStorage(UNAVAILABLE_KEY, unavailable);
+}
+function statusLabel(status) {
+  return ({confirmada:"Confirmada",orcamento:"Em negociação",cancelada:"Cancelada",concluida:"Concluída"})[status] || "Confirmada";
+}
+function formatDate(value, options = {}) {
+  if (!validDate(value)) return value;
+  return dateFromISO(value).toLocaleDateString("pt-BR", options);
+}
+function renderCalendar() {
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  $("calendarTitle").textContent = currentMonth.toLocaleDateString("pt-BR", {month:"long",year:"numeric"});
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const cells = [];
+  for (let index = 0; index < 42; index += 1) {
+    const dayNumber = index - firstDay + 1;
+    const date = localDateISO(new Date(year, month, dayNumber));
+    const isCurrentMonth = dayNumber >= 1 && dayNumber <= daysInMonth;
+    const count = events.filter(event => event.date === date && event.status !== "cancelada").length;
+    const classes = ["calendar-day"];
+    if (!isCurrentMonth) classes.push("outside-month");
+    if (date === selectedDate) classes.push("selected");
+    if (count) classes.push("has-events");
+    if (date === localDateISO()) classes.push("today");
+    cells.push(
+      '<button type="button" class="' + classes.join(" ") + '" data-calendar-date="' + date +
+      '" aria-pressed="' + String(date === selectedDate) + '" aria-label="' + formatDate(date) + (count ? ", " + count + (count === 1 ? " festa" : " festas") : ", sem festas") + '">' +
+      '<span class="calendar-day-number">' + dayNumber + '</span>' +
+      (count ? '<span class="calendar-day-count">' + count + (count === 1 ? " festa" : " festas") + '</span>' : '<span class="calendar-day-empty"></span>') +
+      '</button>'
+    );
+  }
+  $("calendarGrid").innerHTML = cells.join("");
+  $("calendarGrid").querySelectorAll("[data-calendar-date]").forEach(button => {
+    button.addEventListener("click", () => {
+      selectedDate = button.dataset.calendarDate;
+      renderCalendar();
+      renderBookingsForDate();
+      $("eventForm").elements.date.value = selectedDate;
+      renderEventItems();
+    });
+  });
+  const count = events.filter(event => event.date.slice(0, 7) === localDateISO(currentMonth).slice(0, 7) && event.status !== "cancelada").length;
+  $("monthEventTotal").textContent = count + (count === 1 ? " festa no mês" : " festas no mês");
+}
+function renderBookingsForDate() {
+  $("selectedDateTitle").textContent = formatDate(selectedDate, {weekday:"long",day:"2-digit",month:"long",year:"numeric"});
+  const list = events.filter(event => event.date === selectedDate).sort((a,b) => a.client.localeCompare(b.client, "pt-BR"));
+  if (!list.length) {
+    $("bookingsForDate").innerHTML = '<div class="empty-bookings">Nenhuma festa cadastrada para este dia. Você pode agendar mais de uma festa na mesma data.</div>';
+    return;
+  }
+  $("bookingsForDate").innerHTML = list.map(event => {
+    const itemText = event.items.map(item => {
+      const product = getProduct(item.productId);
+      return escapeHtml(product ? product.name : "Peça removida") + " × " + item.quantity;
+    }).join(" · ");
+    return '<article class="booking-card">' +
+      '<div class="booking-card-main"><div class="booking-card-title"><strong>' + escapeHtml(event.client) +
+      '</strong><span class="status-pill status-' + event.status + '">' + statusLabel(event.status) + '</span></div>' +
+      '<p>' + escapeHtml(event.eventType) + (event.neighborhood ? " · " + escapeHtml(event.neighborhood) : "") + '</p>' +
+      '<small>' + (itemText || "Nenhuma peça vinculada") + '</small>' +
+      (event.notes ? '<small class="booking-notes">' + escapeHtml(event.notes) + '</small>' : '') +
+      '</div><div class="booking-actions"><button type="button" data-edit-event="' + escapeHtml(event.id) + '">Editar</button>' +
+      '<button type="button" class="danger-action" data-delete-event="' + escapeHtml(event.id) + '">Excluir</button></div></article>';
+  }).join("");
+  $("bookingsForDate").querySelectorAll("[data-edit-event]").forEach(button => {
+    button.addEventListener("click", () => editEvent(button.dataset.editEvent));
+  });
+  $("bookingsForDate").querySelectorAll("[data-delete-event]").forEach(button => {
+    button.addEventListener("click", () => {
+      if (!confirm("Excluir esta festa da agenda?")) return;
+      events = events.filter(event => event.id !== button.dataset.deleteEvent);
+      if (saveEvents()) {
+        if (editingEventId === button.dataset.deleteEvent) resetEventForm();
+        renderAll();
+      }
+    });
+  });
+}
+function renderEventItems() {
+  const container = $("eventItems");
+  if (!products.length) {
+    container.innerHTML = '<p class="empty-bookings">Cadastre primeiro as peças e suas quantidades em estoque.</p>';
+    return;
+  }
+  if (!eventItemsState.length) {
+    container.innerHTML = '<p class="empty-bookings">Nenhuma peça selecionada. Clique em “Adicionar peça” para vincular objetos à festa.</p>';
+    return;
+  }
+  container.innerHTML = eventItemsState.map((item, index) => {
+    const selectedProduct = getProduct(item.productId);
+    const options = products.map(product => {
+      const available = availableQuantity(product.id, $("eventForm").elements.date.value || selectedDate, editingEventId);
+      const isSelected = item.productId === product.id;
+      const label = product.name + " — " + available + "/" + product.stock + " disponível(is)";
+      return '<option value="' + escapeHtml(product.id) + '"' + (isSelected ? " selected" : "") +
+        (available <= 0 && !isSelected ? " disabled" : "") + '>' + escapeHtml(label) + '</option>';
+    }).join("");
+    const max = selectedProduct ? Math.max(1, availableQuantity(selectedProduct.id, $("eventForm").elements.date.value || selectedDate, editingEventId)) : 100;
+    return '<div class="event-item-row" data-item-row="' + index + '">' +
+      '<label>Peça<select data-item-product="' + index + '"><option value="">Selecione uma peça</option>' + options + '</select></label>' +
+      '<label>Qtd.<input data-item-quantity="' + index + '" type="number" min="1" max="' + max + '" value="' + item.quantity + '"></label>' +
+      '<button type="button" class="remove-item-button" data-remove-event-item="' + index + '" aria-label="Remover peça">×</button>' +
+      '</div>';
+  }).join("");
+  container.querySelectorAll("[data-item-product]").forEach(select => {
+    select.addEventListener("change", () => {
+      const index = Number(select.dataset.itemProduct);
+      eventItemsState[index].productId = select.value;
+      renderEventItems();
+    });
+  });
+  container.querySelectorAll("[data-item-quantity]").forEach(input => {
+    input.addEventListener("change", () => {
+      const index = Number(input.dataset.itemQuantity);
+      eventItemsState[index].quantity = Number(input.value);
+    });
+  });
+  container.querySelectorAll("[data-remove-event-item]").forEach(button => {
+    button.addEventListener("click", () => {
+      eventItemsState.splice(Number(button.dataset.removeEventItem), 1);
+      renderEventItems();
+    });
+  });
+}
 function renderProducts() {
   $("productTotal").textContent = products.length + (products.length === 1 ? " item" : " itens");
-  $("productRows").innerHTML = products.map(product =>
-    '<tr><td>' + escapeHtml(product.name) + '</td><td>' + escapeHtml(product.category) +
-    '</td><td class="row-actions"><button type="button" data-edit="' + escapeHtml(product.id) +
-    '">Editar</button> <button type="button" data-delete="' + escapeHtml(product.id) + '">Excluir</button></td></tr>'
-  ).join("") || '<tr><td colspan="3">Nenhum produto cadastrado.</td></tr>';
-
-  $("productRows").querySelectorAll("[data-edit]").forEach(button => {
-    button.addEventListener("click", () => editProduct(button.dataset.edit));
+  $("productRows").innerHTML = products.map(product => {
+    const todayAvailable = availableQuantity(product.id, localDateISO(), null);
+    const availability = todayAvailable + "/" + product.stock;
+    return '<tr><td>' + escapeHtml(product.name) + '</td><td>' + escapeHtml(product.category) +
+      '</td><td>' + availability + ' livre(s) hoje</td><td class="row-actions"><button type="button" data-edit-product="' + escapeHtml(product.id) +
+      '">Editar</button> <button type="button" data-delete-product="' + escapeHtml(product.id) +
+      '">Excluir</button></td></tr>';
+  }).join("") || '<tr><td colspan="4">Nenhum produto cadastrado.</td></tr>';
+  $("productRows").querySelectorAll("[data-edit-product]").forEach(button => {
+    button.addEventListener("click", () => editProduct(button.dataset.editProduct));
   });
-  $("productRows").querySelectorAll("[data-delete]").forEach(button => {
+  $("productRows").querySelectorAll("[data-delete-product]").forEach(button => {
     button.addEventListener("click", () => {
-      if (!confirm("Excluir este produto do catálogo?")) return;
-      products = products.filter(product => product.id !== button.dataset.delete);
-      if (!writeStorage(PRODUCT_KEY, products)) return;
-      if (editingId === button.dataset.delete) resetProductForm();
-      renderProducts();
+      const id = button.dataset.deleteProduct;
+      if (events.some(event => event.items.some(item => item.productId === id)) ||
+          unavailable.some(item => item.productId === id)) {
+        alert("Esta peça está vinculada a uma festa ou bloqueio. Remova esses vínculos antes de excluir o cadastro.");
+        return;
+      }
+      if (!confirm("Excluir esta peça do catálogo?")) return;
+      products = products.filter(product => product.id !== id);
+      if (writeStorage(PRODUCT_KEY, products)) renderAll();
+    });
+  });
+}
+function renderUnavailableProductOptions() {
+  const select = $("unavailableProduct");
+  const current = select.value;
+  select.innerHTML = products.map(product =>
+    '<option value="' + escapeHtml(product.id) + '">' + escapeHtml(product.name) + " — estoque: " + product.stock + '</option>'
+  ).join("");
+  if (products.some(product => product.id === current)) select.value = current;
+}
+function renderUnavailable() {
+  const list = unavailable.slice().sort((a,b) => a.startDate.localeCompare(b.startDate));
+  $("unavailableTotal").textContent = list.length + (list.length === 1 ? " bloqueio" : " bloqueios");
+  $("unavailableList").innerHTML = list.map(item => {
+    const product = getProduct(item.productId);
+    return '<article class="unavailable-card"><div><strong>' + escapeHtml(product ? product.name : "Peça removida") +
+      ' · ' + item.quantity + ' un.</strong><small>' + formatDate(item.startDate) + ' até ' + formatDate(item.endDate) +
+      ' · ' + escapeHtml(item.reason) + '</small></div><button type="button" class="danger-action" data-release-block="' + escapeHtml(item.id) + '">Liberar</button></article>';
+  }).join("") || '<div class="empty-bookings">Nenhuma peça marcada como indisponível.</div>';
+  $("unavailableList").querySelectorAll("[data-release-block]").forEach(button => {
+    button.addEventListener("click", () => {
+      if (!confirm("Liberar esta peça para novos agendamentos no período informado?")) return;
+      unavailable = unavailable.filter(item => item.id !== button.dataset.releaseBlock);
+      if (saveUnavailable()) renderAll();
     });
   });
 }
 function editProduct(id) {
-  const product = products.find(item => item.id === id);
+  const product = getProduct(id);
   if (!product) return;
-  editingId = id;
+  editingProductId = id;
   const form = $("productForm");
   form.elements.name.value = product.name;
   form.elements.category.value = product.category;
+  form.elements.stock.value = product.stock;
   form.elements.tag.value = product.tag;
   form.elements.image.value = product.image;
   form.elements.description.value = product.description;
@@ -114,65 +393,122 @@ function editProduct(id) {
   form.elements.name.focus();
 }
 function resetProductForm() {
-  editingId = null;
+  editingProductId = null;
   $("productForm").reset();
+  $("productForm").elements.stock.value = "1";
   $("saveProduct").textContent = "Salvar produto +";
   $("cancelEdit").hidden = true;
 }
-function renderBlocked() {
-  blocked.sort((a, b) => a.date.localeCompare(b.date));
-  $("blockedRows").innerHTML = blocked.map(item =>
-    '<tr><td>' + new Date(item.date + "T12:00:00").toLocaleDateString("pt-BR") +
-    '</td><td>' + escapeHtml(item.note || "Data bloqueada") +
-    '</td><td><button type="button" data-unblock="' + escapeHtml(item.date) + '">Desbloquear</button></td></tr>'
-  ).join("") || '<tr><td colspan="3">Nenhuma data anotada.</td></tr>';
-  $("blockedRows").querySelectorAll("[data-unblock]").forEach(button => {
-    button.addEventListener("click", () => {
-      blocked = blocked.filter(item => item.date !== button.dataset.unblock);
-      if (writeStorage(BLOCK_KEY, blocked)) renderBlocked();
-    });
-  });
+function resetEventForm() {
+  editingEventId = null;
+  $("eventForm").reset();
+  $("eventForm").elements.date.min = localDateISO();
+  $("eventForm").elements.date.value = selectedDate;
+  $("eventFormTitle").textContent = "Cadastrar festa de cliente";
+  $("saveEvent").textContent = "Salvar festa na agenda";
+  $("cancelEventEdit").hidden = true;
+  eventItemsState = [];
+  renderEventItems();
 }
-
+function editEvent(id) {
+  const event = events.find(item => item.id === id);
+  if (!event) return;
+  editingEventId = id;
+  selectedDate = event.date;
+  currentMonth = new Date(dateFromISO(event.date).getFullYear(), dateFromISO(event.date).getMonth(), 1);
+  const form = $("eventForm");
+  form.elements.client.value = event.client;
+  form.elements.date.value = event.date;
+  form.elements.eventType.value = event.eventType;
+  form.elements.neighborhood.value = event.neighborhood;
+  form.elements.status.value = event.status;
+  form.elements.notes.value = event.notes;
+  eventItemsState = event.items.map(item => ({productId:item.productId,quantity:item.quantity}));
+  $("eventFormTitle").textContent = "Editar festa agendada";
+  $("saveEvent").textContent = "Salvar alterações da festa";
+  $("cancelEventEdit").hidden = false;
+  renderCalendar();
+  renderBookingsForDate();
+  renderEventItems();
+  $("eventEditorCard").scrollIntoView({behavior:"smooth", block:"start"});
+}
+function openNewEvent() {
+  resetEventForm();
+  if (products.length) {
+    const firstAvailable = products.find(product => availableQuantity(product.id, selectedDate, null) > 0);
+    if (firstAvailable) eventItemsState = [{productId:firstAvailable.id,quantity:1}];
+  }
+  renderEventItems();
+  $("eventEditorCard").scrollIntoView({behavior:"smooth", block:"start"});
+  $("eventForm").elements.client.focus();
+}
+function consolidateItems(items) {
+  const map = new Map();
+  items.forEach(item => {
+    map.set(item.productId, (map.get(item.productId) || 0) + item.quantity);
+  });
+  return Array.from(map, entry => ({productId:entry[0],quantity:entry[1]}));
+}
+function renderAll() {
+  renderCalendar();
+  renderBookingsForDate();
+  renderProducts();
+  renderUnavailableProductOptions();
+  renderUnavailable();
+  renderEventItems();
+}
 $("productForm").addEventListener("submit", event => {
   event.preventDefault();
   const data = new FormData(event.currentTarget);
+  const stock = Number(data.get("stock"));
   const rawImage = String(data.get("image") || "").trim();
   const image = rawImage ? safeImage(rawImage) : FALLBACK_IMAGE;
+  if (!Number.isInteger(stock) || stock < 1 || stock > 100) {
+    alert("Informe uma quantidade física entre 1 e 100.");
+    return;
+  }
   if (!image) {
     alert("Informe uma URL de imagem HTTPS válida.");
     return;
   }
-  const id = editingId || ("produto-" + (crypto.randomUUID ? crypto.randomUUID() : Date.now()));
+  const id = editingProductId || randomId("produto");
   const product = normalizeProduct({
     id,
     name: data.get("name"),
     category: data.get("category"),
+    stock,
     tag: data.get("tag"),
     description: data.get("description"),
     image
   });
   if (!product) {
-    alert("Confira os campos do produto. Nome, categoria e descrição são obrigatórios.");
+    alert("Confira os campos do produto. Nome, categoria, descrição e estoque são obrigatórios.");
     return;
   }
-  const wasEditing = Boolean(editingId);
-  const nextProducts = wasEditing
-    ? products.map(item => item.id === editingId ? product : item)
+  if (editingProductId && stock < maximumUsedQuantity(id)) {
+    alert("Não é possível reduzir o estoque para " + stock + ". Existem até " + maximumUsedQuantity(id) + " unidade(s) reservada(s) ou bloqueada(s) simultaneamente.");
+    return;
+  }
+  const nextProducts = editingProductId
+    ? products.map(item => item.id === editingProductId ? product : item)
     : [...products, product];
   if (!writeStorage(PRODUCT_KEY, nextProducts)) return;
   products = nextProducts;
   resetProductForm();
-  renderProducts();
-  alert(wasEditing ? "Produto atualizado neste navegador." : "Produto salvo neste navegador.");
+  renderAll();
+  alert(editingProductId ? "Produto atualizado." : "Produto cadastrado.");
 });
 $("cancelEdit").addEventListener("click", resetProductForm);
 $("restoreProducts").addEventListener("click", () => {
+  if (events.length || unavailable.length) {
+    alert("Antes de restaurar o catálogo, remova os agendamentos e bloqueios que usam as peças cadastradas.");
+    return;
+  }
   if (!confirm("Restaurar os produtos de exemplo? Isso substituirá o catálogo salvo neste navegador.")) return;
   if (!writeStorage(PRODUCT_KEY, DEFAULT)) return;
   products = DEFAULT.slice();
   resetProductForm();
-  renderProducts();
+  renderAll();
 });
 $("exportCatalog").addEventListener("click", () => {
   const blob = new Blob([JSON.stringify(products, null, 2)], {type:"application/json"});
@@ -191,37 +527,203 @@ $("importCatalog").addEventListener("change", async event => {
     const parsed = JSON.parse(await file.text());
     const validated = normalizeCatalog(parsed);
     if (!validated) throw new Error("Catálogo inválido.");
+    const newIds = new Set(validated.map(product => product.id));
+    const referencedIds = new Set(events.flatMap(event => event.items.map(item => item.productId)).concat(unavailable.map(item => item.productId)));
+    if (Array.from(referencedIds).some(id => !newIds.has(id))) throw new Error("A importação removeria peças usadas na agenda.");
     if (!writeStorage(PRODUCT_KEY, validated)) return;
     products = validated;
     resetProductForm();
-    renderProducts();
+    renderAll();
     alert("Catálogo importado neste navegador.");
-  } catch {
-    alert("Não foi possível importar. Use um JSON exportado por esta ferramenta, com até 300 itens e imagens HTTPS.");
+  } catch (error) {
+    alert(error.message === "A importação removeria peças usadas na agenda."
+      ? error.message
+      : "Não foi possível importar. Use um JSON válido, com até 300 itens e imagens HTTPS.");
   } finally {
     event.target.value = "";
   }
 });
-$("blockForm").addEventListener("submit", event => {
+$("eventForm").addEventListener("submit", event => {
   event.preventDefault();
-  const data = new FormData(event.currentTarget);
+  const form = event.currentTarget;
+  if (!form.reportValidity()) return;
+  const data = new FormData(form);
   const date = String(data.get("date") || "");
-  const note = String(data.get("note") || "").trim().slice(0, 100);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date < localDateISO()) {
+  if (!validDate(date) || date < localDateISO()) {
     alert("Escolha uma data válida de hoje em diante.");
     return;
   }
-  if (blocked.some(item => item.date === date)) {
-    alert("Esta data já está anotada.");
+  const rawItems = eventItemsState.map(item => ({
+    productId:String(item.productId || ""),
+    quantity:Number(item.quantity)
+  })).filter(item => item.productId);
+  const items = consolidateItems(rawItems);
+  if (!items.length) {
+    alert("Adicione pelo menos uma peça à festa.");
     return;
   }
-  const nextBlocked = [...blocked, {date, note}];
-  if (!writeStorage(BLOCK_KEY, nextBlocked)) return;
-  blocked = nextBlocked;
-  event.currentTarget.reset();
-  renderBlocked();
+  for (const item of items) {
+    if (!Number.isInteger(item.quantity) || item.quantity < 1) {
+      alert("Confira as quantidades das peças.");
+      return;
+    }
+    const product = getProduct(item.productId);
+    if (!product) {
+      alert("Uma das peças não existe mais no catálogo. Atualize a seleção.");
+      return;
+    }
+    const status = String(data.get("status"));
+    if (status !== "cancelada" && status !== "concluida") {
+      const available = availableQuantity(item.productId, date, editingEventId);
+      if (item.quantity > available) {
+        alert("Não há unidades suficientes de " + product.name + " para " + formatDate(date) + ". Disponíveis: " + available + ". Reduza a quantidade, escolha outra data ou ajuste o estoque/bloqueio.");
+        return;
+      }
+    }
+  }
+  const wasEditing = Boolean(editingEventId);
+  const record = {
+    id: editingEventId || randomId("festa"),
+    client: String(data.get("client")).trim().slice(0,80),
+    date,
+    eventType: String(data.get("eventType") || "Outro"),
+    neighborhood: String(data.get("neighborhood") || "").trim().slice(0,80),
+    status: String(data.get("status") || "confirmada"),
+    notes: String(data.get("notes") || "").trim().slice(0,400),
+    items
+  };
+  const nextEvents = wasEditing
+    ? events.map(item => item.id === editingEventId ? record : item)
+    : [...events, record];
+  if (!writeStorage(EVENT_KEY, nextEvents)) return;
+  events = nextEvents;
+  selectedDate = date;
+  const selected = dateFromISO(date);
+  currentMonth = new Date(selected.getFullYear(), selected.getMonth(), 1);
+  resetEventForm();
+  renderAll();
+  alert(wasEditing ? "Festa atualizada na agenda." : "Festa adicionada à agenda.");
 });
-$("blockForm").elements.date.min = localDateISO();
+$("cancelEventEdit").addEventListener("click", resetEventForm);
+$("addEventItem").addEventListener("click", () => {
+  const date = $("eventForm").elements.date.value || selectedDate;
+  const next = products.find(product => availableQuantity(product.id, date, editingEventId) > 0);
+  eventItemsState.push({productId:next ? next.id : "",quantity:1});
+  renderEventItems();
+});
+$("eventForm").elements.date.addEventListener("change", event => {
+  if (!validDate(event.target.value)) return;
+  selectedDate = event.target.value;
+  const date = dateFromISO(selectedDate);
+  currentMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+  renderCalendar();
+  renderBookingsForDate();
+  renderEventItems();
+});
+$("newEventForDate").addEventListener("click", openNewEvent);
+$("previousMonth").addEventListener("click", () => {
+  currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
+  selectedDate = localDateISO(currentMonth);
+  renderCalendar();
+  renderBookingsForDate();
+  $("eventForm").elements.date.value = selectedDate;
+  renderEventItems();
+});
+$("nextMonth").addEventListener("click", () => {
+  currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+  selectedDate = localDateISO(currentMonth);
+  renderCalendar();
+  renderBookingsForDate();
+  $("eventForm").elements.date.value = selectedDate;
+  renderEventItems();
+});
+$("unavailableForm").addEventListener("submit", event => {
+  event.preventDefault();
+  if (!products.length) {
+    alert("Cadastre primeiro as peças e suas quantidades.");
+    return;
+  }
+  const data = new FormData(event.currentTarget);
+  const productId = String(data.get("productId") || "");
+  const quantity = Number(data.get("quantity"));
+  const startDate = String(data.get("startDate") || "");
+  const endDate = String(data.get("endDate") || "");
+  const reason = String(data.get("reason") || "").trim();
+  if (!validDate(startDate) || !validDate(endDate) || startDate < localDateISO() || endDate < startDate) {
+    alert("Informe um período válido, de hoje em diante.");
+    return;
+  }
+  const span = Math.round((dateFromISO(endDate) - dateFromISO(startDate)) / 86400000);
+  if (span > 365) {
+    alert("O período de bloqueio pode ter no máximo 366 dias.");
+    return;
+  }
+  const product = getProduct(productId);
+  if (!product || !Number.isInteger(quantity) || quantity < 1 || quantity > product.stock || !reason) {
+    alert("Confira a peça, a quantidade e o motivo do bloqueio.");
+    return;
+  }
+  for (let offset = 0; offset <= span; offset += 1) {
+    const date = shiftDate(startDate, offset);
+    const available = availableQuantity(productId, date, null);
+    if (quantity > available) {
+      alert("Não é possível bloquear " + quantity + " unidade(s) de " + product.name + " em " + formatDate(date) + ". Há apenas " + available + " livre(s), considerando festas e outros bloqueios.");
+      return;
+    }
+  }
+  unavailable.push({
+    id:randomId("bloqueio"),
+    productId,
+    quantity,
+    startDate,
+    endDate,
+    reason:reason.slice(0,120)
+  });
+  if (saveUnavailable()) {
+    event.currentTarget.reset();
+    $("unavailableForm").elements.quantity.value = "1";
+    $("unavailableForm").elements.startDate.value = localDateISO();
+    $("unavailableForm").elements.endDate.value = localDateISO();
+    renderAll();
+  }
+});
+$("unavailableForm").elements.startDate.min = localDateISO();
+$("unavailableForm").elements.endDate.min = localDateISO();
+$("unavailableForm").elements.startDate.value = localDateISO();
+$("unavailableForm").elements.endDate.value = localDateISO();
+$("unavailableForm").elements.startDate.addEventListener("change", event => {
+  $("unavailableForm").elements.endDate.min = event.target.value || localDateISO();
+  if ($("unavailableForm").elements.endDate.value < event.target.value) {
+    $("unavailableForm").elements.endDate.value = event.target.value;
+  }
+});
+$("exportCatalog").setAttribute("aria-label", "Baixar cópia do catálogo em JSON");
+const exportAgenda = document.createElement("button");
+exportAgenda.type = "button";
+exportAgenda.className = "button button-soft";
+exportAgenda.id = "exportAgenda";
+exportAgenda.textContent = "Exportar agenda e bloqueios (JSON)";
+$("unavailableList").parentElement.appendChild(exportAgenda);
+exportAgenda.addEventListener("click", () => {
+  const backup = {version:1,exportedAt:new Date().toISOString(),events,unavailable,products};
+  const blob = new Blob([JSON.stringify(backup,null,2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "familia-decora-agenda-backup.json";
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+window.addEventListener("storage", event => {
+  if (![PRODUCT_KEY, EVENT_KEY, UNAVAILABLE_KEY].includes(event.key)) return;
+  products = normalizeCatalog(readStorage(PRODUCT_KEY, DEFAULT)) ?? DEFAULT.slice();
+  events = normalizeEvents(readStorage(EVENT_KEY, []));
+  unavailable = normalizeUnavailable(readStorage(UNAVAILABLE_KEY, []));
+  renderAll();
+});
+$("eventForm").elements.date.min = localDateISO();
 $("cancelEdit").hidden = true;
-renderProducts();
-renderBlocked();
+$("cancelEventEdit").hidden = true;
+resetProductForm();
+resetEventForm();
+renderAll();

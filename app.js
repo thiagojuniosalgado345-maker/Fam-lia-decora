@@ -150,7 +150,8 @@ function renderProducts() {
         : available > 0
           ? available + (available === 1 ? " unidade livre" : " unidades livres") + " na data"
           : "Sem unidades livres na data";
-    const disabled = available === 0;
+    const limitReached = available !== null && available > 0 && (selected[product.id] || 0) >= available;
+    const disabled = available === 0 || limitReached;
     return '<article class="product-card">' +
       '<div class="product-photo"><img src="' + escapeHtml(product.image) + '" alt="' + escapeHtml(product.name) +
       '" loading="lazy"><span class="photo-label">' + escapeHtml(product.tag || product.category) + '</span></div>' +
@@ -159,7 +160,7 @@ function renderProducts() {
       '<div class="product-bottom"><span class="price-hint">' + escapeHtml(availabilityLabel) + '</span>' +
       '<button type="button" class="add-button" data-add="' + escapeHtml(product.id) + '"' +
       (disabled ? ' disabled aria-disabled="true"' : '') + '>' +
-      (disabled ? "Indisponível nesta data" : "Adicionar ao orçamento +") + '</button></div></div>' +
+      (available === 0 ? "Indisponível nesta data" : limitReached ? "Limite selecionado" : "Adicionar ao orçamento +") + '</button></div></div>' +
     '</article>';
   }).join("") : '<div class="no-results">Não encontramos itens com essa busca. Tente outro termo ou categoria.</div>';
   $("productGrid").querySelectorAll("[data-add]").forEach(button => {

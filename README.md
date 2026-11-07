@@ -27,7 +27,7 @@ O site não grava nome, telefone ou detalhes do evento. Os dados só são prepar
 ## Limitações importantes da área da equipe
 \`gestao.html\` é uma ferramenta provisória local, sem autenticação. Catálogo e datas são salvos no \`localStorage\` do navegador atual. As alterações não são compartilhadas entre celulares/computadores nem entre usuários. O painel não é seguro para uso comercial ou dados de clientes; qualquer pessoa que descubra o endereço pode abrir a página. A remoção do link público e a instrução \`noindex\` não substituem login.
 
-Os pedidos enviados pelo Instagram ou WhatsApp não aparecem automaticamente no painel. As datas anotadas não bloqueiam reservas e não consultam disponibilidade.
+Os pedidos enviados pelo Instagram ou WhatsApp não aparecem automaticamente no painel. A agenda local permite várias festas no mesmo dia. Cada evento pode reservar itens e quantidades; o sistema soma as reservas ativas e os bloqueios manuais por data e impede exceder o estoque cadastrado. Um painel/objeto pode ser marcado manualmente como indisponível por período e liberado depois. O botão de backup exporta festas e bloqueios em JSON. Essas informações continuam somente no navegador atual e não são sincronizadas entre aparelhos.
 
 Para gestão real, é necessário conectar um backend (por exemplo, Supabase), configurar autenticação, políticas de acesso e tabelas para produtos, estoque, datas, pedidos e status. Não inserir chaves administrativas no JavaScript público.
 

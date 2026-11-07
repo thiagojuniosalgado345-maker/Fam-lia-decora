@@ -19,14 +19,14 @@ function inspectPage(htmlPath, cssPath, jsPath) {
   const css = readFileSync(cssPath, "utf8");
   const js = readFileSync(jsPath, "utf8");
 
-  const ids = [...html.matchAll(/\\bid=["']([^"']+)["']/g)].map(match => match[1]);
+  const ids = [...html.matchAll(/\bid=["']([^"']+)["']/g)].map(match => match[1]);
   const duplicateIds = ids.filter((id, index) => ids.indexOf(id) !== index);
   if (duplicateIds.length) {
     throw new Error(htmlPath + " contém IDs duplicados: " + [...new Set(duplicateIds)].join(", "));
   }
 
   const idSet = new Set(ids);
-  const referencedIds = [...js.matchAll(/\\$\\(["']([^"']+)["']\\)/g)].map(match => match[1]);
+  const referencedIds = [...js.matchAll(/\$\(["']([^"']+)["']\)/g)].map(match => match[1]);
   const missingIds = [...new Set(referencedIds)].filter(id => !idSet.has(id));
   if (missingIds.length) {
     throw new Error(jsPath + " usa IDs inexistentes em " + htmlPath + ": " + missingIds.join(", "));
@@ -38,7 +38,7 @@ function inspectPage(htmlPath, cssPath, jsPath) {
     throw new Error(htmlPath + " não referencia corretamente seus arquivos CSS/JS.");
   }
 
-  const localRefs = [...html.matchAll(/\\b(?:src|href)=["']([^"']+)["']/g)]
+  const localRefs = [...html.matchAll(/\b(?:src|href)=["']([^"']+)["']/g)]
     .map(match => match[1])
     .filter(ref => ref && !/^(?:https?:|mailto:|tel:|data:|javascript:|#)/i.test(ref))
     .map(ref => ref.split(/[?#]/)[0]);
@@ -54,7 +54,7 @@ function inspectPage(htmlPath, cssPath, jsPath) {
     throw new Error(cssPath + " contém chaves CSS desbalanceadas.");
   }
 
-  if (!/@media\\s*\\(max-width:\\s*(?:650|680)px\\)/.test(css)) {
+  if (!/@media\s*\(max-width:\s*(?:650|680)px\)/.test(css)) {
     throw new Error(cssPath + " não contém a regra de adaptação para celular.");
   }
 
@@ -65,7 +65,7 @@ function inspectPage(htmlPath, cssPath, jsPath) {
 const storeHtml = inspectPage("index.html", "style.css", "app.js");
 inspectPage("gestao.html", "gestao.css", "gestao.js");
 
-const structuredData = [...storeHtml.matchAll(/<script type=["']application\\/ld\\+json["']>([\\s\\S]*?)<\\/script>/gi)];
+const structuredData = [...storeHtml.matchAll(/<script type=["']application\/ld\+json["']>([\s\S]*?)<\/script>/gi)];
 for (const match of structuredData) {
   JSON.parse(match[1]);
 }

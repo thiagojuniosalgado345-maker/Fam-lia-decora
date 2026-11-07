@@ -61,6 +61,8 @@ function sendQuote(){
   if(!form.reportValidity())return;
   const data=new FormData(form);const date=data.get("date");
   if(date<localToday()){notify("Escolha uma data futura para o evento.");return}
+  const phoneDigits=String(data.get("phone")||"").replace(/\\D/g,"");
+  if(phoneDigits.length<10||phoneDigits.length>13){notify("Confira o número de WhatsApp informado.");form.elements.phone.focus();return}
   const items=quoteEntries().map(x=>`• ${x.qty}x ${x.product.name}`);
   const msg=[
     "Olá, Família Decora! Gostaria de solicitar um orçamento.",

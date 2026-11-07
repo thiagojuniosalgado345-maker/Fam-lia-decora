@@ -575,6 +575,7 @@ function renderCalendar() {
       selectedDate = button.dataset.calendarDate;
       renderCalendar();
       renderBookingsForDate();
+      renderProducts();
       if (!editingEventId) $("eventForm").elements.date.value = selectedDate;
       renderEventItems();
     });
@@ -687,13 +688,15 @@ function renderEventItems() {
 function renderProducts() {
   $("productTotal").textContent = products.length + (products.length === 1 ? " item" : " itens");
   $("productRows").innerHTML = products.map(product => {
-    const todayAvailable = availableQuantity(product.id, localDateISO(), null);
-    const availability = todayAvailable + "/" + product.stock;
+    const reserved = bookedQuantity(product.id,selectedDate,null);
+    const blocked = blockedQuantity(product.id,selectedDate,null);
+    const free = availableQuantity(product.id,selectedDate,null);
     return '<tr><td>' + escapeHtml(product.name) + '</td><td>' + escapeHtml(product.category) +
-      '</td><td>' + availability + ' livre(s) hoje</td><td class="row-actions"><button type="button" data-edit-product="' + escapeHtml(product.id) +
+      '</td><td>' + product.stock + '</td><td>' + reserved + '</td><td>' + blocked + '</td><td><strong>' + free +
+      '</strong> livre(s) em ' + formatDate(selectedDate) + '</td><td class="row-actions"><button type="button" data-edit-product="' + escapeHtml(product.id) +
       '">Editar</button> <button type="button" data-delete-product="' + escapeHtml(product.id) +
       '">Excluir</button></td></tr>';
-  }).join("") || '<tr><td colspan="4">Nenhum produto cadastrado.</td></tr>';
+  }).join("") || '<tr><td colspan="7">Nenhum produto cadastrado.</td></tr>';
   $("productRows").querySelectorAll("[data-edit-product]").forEach(button => {
     button.addEventListener("click", () => editProduct(button.dataset.editProduct));
   });
@@ -773,6 +776,7 @@ function editEvent(id) {
   const form = $("eventForm");
   form.elements.client.value = event.client;
   form.elements.date.value = event.date;
+  form.elements.date.min = event.date < localDateISO() ? event.date : localDateISO();
   form.elements.eventType.value = event.eventType;
   form.elements.neighborhood.value = event.neighborhood;
   form.elements.status.value = event.status;
@@ -907,8 +911,9 @@ $("eventForm").addEventListener("submit", event => {
   if (!form.reportValidity()) return;
   const data = new FormData(form);
   const date = String(data.get("date") || "");
-  if (!validDate(date) || date < localDateISO()) {
-    alert("Escolha uma data válida de hoje em diante.");
+  const editedRecord = editingEventId ? events.find(item => item.id === editingEventId) : null;
+  if (!validDate(date) || (date < localDateISO() && (!editedRecord || editedRecord.date !== date))) {
+    alert("Para novos agendamentos, escolha uma data de hoje em diante. Uma festa antiga só pode ser editada mantendo a mesma data.");
     return;
   }
   const rawItems = eventItemsState.map(item => ({
@@ -976,6 +981,7 @@ $("eventForm").elements.date.addEventListener("change", event => {
   currentMonth = new Date(date.getFullYear(), date.getMonth(), 1);
   renderCalendar();
   renderBookingsForDate();
+  renderProducts();
   renderEventItems();
 });
 $("newEventForDate").addEventListener("click", openNewEvent);
@@ -984,6 +990,7 @@ $("previousMonth").addEventListener("click", () => {
   selectedDate = localDateISO(currentMonth);
   renderCalendar();
   renderBookingsForDate();
+  renderProducts();
   if (!editingEventId) $("eventForm").elements.date.value = selectedDate;
   renderEventItems();
 });

@@ -54,7 +54,7 @@ function inspectPage(htmlPath, cssPath, jsPath) {
     throw new Error(cssPath + " contém chaves CSS desbalanceadas.");
   }
 
-  if (!css.includes("@media(max-width:680px)") && !css.includes("@media (max-width:680px)")) {
+  if (!/@media\\s*\\(max-width:\\s*(?:650|680)px\\)/.test(css)) {
     throw new Error(cssPath + " não contém a regra de adaptação para celular.");
   }
 

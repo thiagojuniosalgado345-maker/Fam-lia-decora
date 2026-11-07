@@ -116,3 +116,10 @@
 .github-actions{margin:4px 0 8px}
 .github-actions .button:disabled{opacity:.5;cursor:not-allowed}
 @media(max-width:650px){.github-credentials{grid-template-columns:1fr}.github-actions .button{width:100%}}
+
+.publish-availability-control{display:flex;align-items:flex-start;gap:10px;margin:14px 0;padding:13px 14px;border:1px solid var(--pink-200);border-radius:11px;background:#fff}
+.publish-availability-control input{width:18px;height:18px;accent-color:var(--rose);flex:0 0 auto;margin-top:2px}
+.publish-availability-control span{display:grid;gap:4px}
+.publish-availability-control strong{font-size:11px;color:var(--rose-deep)}
+.publish-availability-control small{font-size:10px;color:var(--muted);line-height:1.55}
+.backup-actions{margin-top:15px}

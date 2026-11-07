@@ -20,21 +20,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Baixar código
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
       - name: Configurar Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7.1.0
         with:
-          node-version: 20
+          node-version: 24
+          package-manager-cache: false
       - name: Validar JavaScript
         run: |
           node --check app.js
           node --check gestao.js
       - name: Validar estrutura, IDs e referências locais
         run: node scripts/validate-site.mjs
-      - name: Preparar arquivos do site
-        uses: actions/upload-pages-artifact@v3
+      - name: Preparar somente os arquivos públicos do site
+        run: |
+          mkdir -p _site/assets _site/data
+          cp index.html style.css app.js gestao.html gestao.css gestao.js .nojekyll _site/
+          cp assets/logo-familia-decora.webp _site/assets/
+          cp data/agenda.json _site/data/
+      - name: Publicar artefato do site
+        uses: actions/upload-pages-artifact@v5.0.0
         with:
-          path: .
+          path: _site/
+          include-hidden-files: true
 
   deploy:
     environment:
@@ -45,4 +53,4 @@ jobs:
     steps:
       - name: Publicar no GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5.0.1

@@ -195,38 +195,41 @@ function renderQuote() {
   const total = entries.reduce((sum, item) => sum + item.quantity, 0);
   $("quoteCount").textContent = total;
   const date = getSelectedEventDate();
-  $("quoteItems").innerHTML = entries.length ? '<div class="quote-lines">' + entries.map(({product, quantity}) => {
-    const available = availabilityFor(product,date);
-    const availabilityText = !date
-      ? "Informe a data para consultar disponibilidade."
-      : available === null
-        ? "Confirme a disponibilidade com a equipe."
-        : available > 0
-          ? available + (available === 1 ? " unidade livre na data." : " unidades livres na data.")
-          : "Sem unidades livres nesta data.";
-    const plusDisabled = available !== null && quantity >= available;
-    return
-    '<div class="quote-line"><img src="' + escapeHtml(product.image) + '" alt=""><div><strong>' +
-    escapeHtml(product.name) + '</strong><small>' + escapeHtml(product.category) + '</small>' +
-    '<div class="quantity"><button type="button" data-qty="' + escapeHtml(product.id) +
-    '" data-step="-1" aria-label="Diminuir quantidade">−</button><span>' + quantity +
-    '</span><button type="button" data-qty="' + escapeHtml(product.id) +
-    '" data-step="1" aria-label="Aumentar quantidade">+</button></div></div>' +
-    '<button type="button" class="remove-button" data-remove="' + escapeHtml(product.id) +
-    '" aria-label="Remover item">×</button><small class="quote-availability">' + escapeHtml(availabilityText) + '</small></div>';
-  }).join("") + '</div>' : '<div class="empty-quote">Seu orçamento ainda está vazio.<br>Escolha as peças que deseja consultar no catálogo. ♡</div>';
+  $("quoteItems").innerHTML = entries.length
+    ? '<div class="quote-lines">' + entries.map(({product, quantity}) => {
+      const available = availabilityFor(product,date);
+      const availabilityText = !date
+        ? "Informe a data para consultar disponibilidade."
+        : available === null
+          ? "Confirme a disponibilidade com a equipe."
+          : available > 0
+            ? available + (available === 1 ? " unidade livre na data." : " unidades livres na data.")
+            : "Sem unidades livres nesta data.";
+      const plusDisabled = available !== null && quantity >= available;
+      return '<div class="quote-line"><img src="' + escapeHtml(product.image) + '" alt=""><div><strong>' +
+        escapeHtml(product.name) + '</strong><small>' + escapeHtml(product.category) + '</small>' +
+        '<div class="quantity"><button type="button" data-qty="' + escapeHtml(product.id) +
+        '" data-step="-1" aria-label="Diminuir quantidade">−</button><span>' + quantity +
+        '</span><button type="button" data-qty="' + escapeHtml(product.id) +
+        '" data-step="1" aria-label="Aumentar quantidade"' + (plusDisabled ? ' disabled' : '') + '>+</button></div></div>' +
+        '<button type="button" class="remove-button" data-remove="' + escapeHtml(product.id) +
+        '" aria-label="Remover item">×</button><small class="quote-availability">' + escapeHtml(availabilityText) + '</small></div>';
+    }).join("") + '</div>'
+    : '<div class="empty-quote">Seu orçamento ainda está vazio.<br>Escolha as peças que deseja consultar no catálogo. ♡</div>';
   $("quoteItems").querySelectorAll("[data-qty]").forEach(button => {
     button.addEventListener("click", () => {
       const id = button.dataset.qty;
       selected[id] = Math.max(0, (selected[id] || 0) + Number(button.dataset.step));
       if (!selected[id]) delete selected[id];
       renderQuote();
+      renderProducts();
     });
   });
   $("quoteItems").querySelectorAll("[data-remove]").forEach(button => {
     button.addEventListener("click", () => {
       delete selected[button.dataset.remove];
       renderQuote();
+      renderProducts();
     });
   });
   $("sendQuote").disabled = !entries.length;

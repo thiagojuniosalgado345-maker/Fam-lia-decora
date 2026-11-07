@@ -9,35 +9,78 @@
 <link rel="stylesheet" href="style.css"><link rel="stylesheet" href="gestao.css">
 </head>
 <body>
-<div class="announcement">FAMÍLIA DECORA <span>—</span> FERRAMENTA INTERNA DE DEMONSTRAÇÃO</div>
+<div class="announcement">FAMÍLIA DECORA <span>—</span> AGENDA E CONTROLE DE PEÇAS</div>
 <main class="container management">
-  <div class="management-header"><div><div class="eyebrow"><span></span> Organização da loja</div><h1>Área da equipe</h1><p>Gerencie o catálogo e registre datas indisponíveis neste navegador.</p></div><a class="button button-soft" href="index.html">← Voltar à loja</a></div>
-  <div class="local-warning"><strong>Atenção — versão local, sem login e sem sincronização.</strong> Esta página é um protótipo de organização. As alterações ficam somente no navegador e dispositivo usados aqui. Qualquer pessoa que tenha o endereço pode acessar esta tela. Não cadastre dados pessoais de clientes nem use como agenda oficial compartilhada. Para uso real, precisamos conectar banco de dados e autenticação.</div>
+  <div class="management-header"><div><div class="eyebrow"><span></span> Organização da loja</div><h1>Agenda da Família Decora</h1><p>Visualize festas por dia e acompanhe quais peças estão reservadas ou indisponíveis.</p></div><a class="button button-soft" href="index.html">← Voltar à loja</a></div>
+  <div class="local-warning"><strong>Versão de demonstração — dados salvos somente neste navegador.</strong> A agenda aceita várias festas no mesmo dia e calcula a disponibilidade das peças cadastradas, mas ainda não sincroniza com outros aparelhos nem tem login. Até conectar o banco de dados e proteger o acesso, use apenas dados fictícios para testar. Não use esta versão como agenda oficial nem registre dados pessoais reais de clientes.</div>
+
+  <section class="management-card agenda-card">
+    <div class="card-heading"><div><span class="card-kicker">01 / Calendário</span><h2>Agenda de festas</h2></div><span class="count-pill" id="monthEventTotal">0 festas no mês</span></div>
+    <div class="calendar-toolbar">
+      <button class="calendar-nav" id="previousMonth" type="button" aria-label="Mês anterior">‹</button>
+      <h3 id="calendarTitle" aria-live="polite"></h3>
+      <button class="calendar-nav" id="nextMonth" type="button" aria-label="Próximo mês">›</button>
+    </div>
+    <div class="calendar-weekdays" aria-hidden="true"><span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span></div>
+    <div class="calendar-grid" id="calendarGrid" aria-label="Calendário mensal"></div>
+    <div class="calendar-legend"><span><i class="legend-dot booked"></i> Dia com festa</span><span><i class="legend-dot selected"></i> Dia selecionado</span></div>
+    <div class="day-events">
+      <div class="day-events-heading"><div><span class="card-kicker">Festas do dia selecionado</span><h3 id="selectedDateTitle">—</h3></div><button class="button button-primary" id="newEventForDate" type="button">+ Agendar festa</button></div>
+      <div id="bookingsForDate" class="booking-list" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section class="management-card" id="eventEditorCard">
+    <div class="card-heading"><div><span class="card-kicker">02 / Novo agendamento</span><h2 id="eventFormTitle">Cadastrar festa de cliente</h2></div></div>
+    <form id="eventForm" class="management-form event-form">
+      <label>Cliente ou código do pedido<input name="client" required maxlength="80" placeholder="Ex.: Cliente A ou Pedido 001"></label>
+      <label>Data da festa<input name="date" type="date" required></label>
+      <label>Tipo de evento<select name="eventType"><option>Aniversário</option><option>Casamento</option><option>Chá de bebê / revelação</option><option>Batizado</option><option>Confraternização</option><option>Outro</option></select></label>
+      <label>Bairro / região<input name="neighborhood" maxlength="80" placeholder="Local do evento (opcional)"></label>
+      <label>Situação<select name="status"><option value="confirmada">Confirmada</option><option value="orcamento">Em negociação</option><option value="cancelada">Cancelada</option><option value="concluida">Concluída</option></select></label>
+      <label class="wide">Observações<textarea name="notes" rows="2" maxlength="400" placeholder="Horário, tema, retirada, entrega ou outros detalhes"></textarea></label>
+      <div class="wide event-items-editor">
+        <div class="inline-heading"><div><strong>Peças reservadas para esta festa</strong><small>Escolha os painéis, móveis ou objetos que sairão para o evento.</small></div><button class="button button-soft" id="addEventItem" type="button">+ Adicionar peça</button></div>
+        <div id="eventItems" class="event-item-rows"></div>
+      </div>
+      <div class="wide form-actions"><button class="button button-primary" id="saveEvent" type="submit">Salvar festa na agenda</button><button class="button button-soft" id="cancelEventEdit" type="button" hidden>Cancelar edição</button></div>
+    </form>
+  </section>
+
   <section class="management-card">
-    <div class="card-heading"><div><span class="card-kicker">01 / Vitrine</span><h2>Adicionar produto ou peça</h2></div></div>
+    <div class="card-heading"><div><span class="card-kicker">03 / Disponibilidade manual</span><h2>Marcar peça como indisponível</h2></div></div>
+    <p class="management-help">Use quando um painel, cilindro, mesa ou objeto estiver em manutenção, emprestado ou fora de uso. Escolha o período; a quantidade bloqueada será descontada da disponibilidade para festas nessas datas.</p>
+    <form id="unavailableForm" class="management-form unavailable-form">
+      <label>Peça / objeto<select name="productId" id="unavailableProduct" required></select></label>
+      <label>Quantidade indisponível<input name="quantity" type="number" min="1" max="100" value="1" required></label>
+      <label>Indisponível a partir de<input name="startDate" type="date" required></label>
+      <label>Disponível novamente em<input name="endDate" type="date" required></label>
+      <label class="wide">Motivo<input name="reason" maxlength="120" required placeholder="Ex.: Em manutenção, emprestado ou danificado"></label>
+      <div class="wide form-actions"><button class="button button-primary" type="submit">Marcar como indisponível</button></div>
+    </form>
+    <div class="subsection-heading"><h3>Bloqueios ativos e programados</h3><span class="count-pill" id="unavailableTotal">0 bloqueios</span></div>
+    <div id="unavailableList" class="unavailable-list"></div>
+  </section>
+
+  <section class="management-card">
+    <div class="card-heading"><div><span class="card-kicker">04 / Cadastro de peças</span><h2>Produtos e quantidade em estoque</h2></div><span class="count-pill" id="productTotal">0 itens</span></div>
+    <p class="management-help">Cadastre cada tipo de peça e informe quantas unidades físicas a loja possui. A agenda usa essa quantidade para evitar reservar mais unidades do que existem.</p>
     <form id="productForm" class="management-form">
-      <label>Nome do produto<input name="name" required maxlength="80" placeholder="Ex.: Kit Jardim Encantado"></label>
+      <label>Nome do produto<input name="name" required maxlength="80" placeholder="Ex.: Painel redondo rosé"></label>
       <label>Categoria<select name="category"><option>Kits</option><option>Painéis</option><option>Móveis</option><option>Peças</option></select></label>
+      <label>Quantidade física no estoque<input name="stock" type="number" min="1" max="100" value="1" required></label>
       <label>Etiqueta curta<input name="tag" maxlength="35" placeholder="Ex.: Novo tema"></label>
       <label>URL da imagem<input name="image" type="url" placeholder="https://..."></label>
       <label class="wide">Descrição<input name="description" maxlength="180" required placeholder="Descreva o item para o cliente"></label>
       <div class="wide form-actions"><button class="button button-primary" id="saveProduct" type="submit">Salvar produto +</button><button class="button button-soft" id="cancelEdit" type="button" hidden>Cancelar edição</button><button class="button button-soft" id="restoreProducts" type="button">Restaurar catálogo de exemplo</button></div>
     </form>
-  </section>
-  <section class="management-card">
-    <div class="card-heading"><div><span class="card-kicker">02 / Catálogo</span><h2>Produtos cadastrados</h2></div><span class="count-pill" id="productTotal">0 itens</span></div>
-    <div class="table-scroll"><table class="management-table"><thead><tr><th>Produto</th><th>Categoria</th><th>Ação</th></tr></thead><tbody id="productRows"></tbody></table></div>
+    <div class="table-scroll inventory-table-wrap"><table class="management-table"><thead><tr><th>Peça</th><th>Categoria</th><th>Estoque</th><th>Ação</th></tr></thead><tbody id="productRows"></tbody></table></div>
     <div class="form-actions export-actions"><button class="button button-soft" id="exportCatalog" type="button">Baixar cópia do catálogo (JSON)</button><label class="button button-soft file-button">Importar catálogo<input id="importCatalog" type="file" accept="application/json,.json"></label></div>
   </section>
-  <section class="management-card">
-    <div class="card-heading"><div><span class="card-kicker">03 / Agenda</span><h2>Datas indisponíveis</h2></div></div>
-    <p class="management-help">Use este quadro como anotação local de datas já reservadas ou bloqueadas. Ele não consulta nem bloqueia automaticamente os pedidos feitos no site.</p>
-    <form id="blockForm" class="block-form"><label>Data<input name="date" type="date" required></label><label>Motivo / observação<input name="note" maxlength="100" placeholder="Ex.: Evento reservado"></label><button class="button button-primary" type="submit">Bloquear data</button></form>
-    <div class="table-scroll"><table class="management-table"><thead><tr><th>Data</th><th>Observação</th><th>Ação</th></tr></thead><tbody id="blockedRows"></tbody></table></div>
-  </section>
+
   <section class="management-card backup-card">
-    <span class="card-kicker">Importante</span><h2>O que esta versão ainda não faz</h2>
-    <p>Os pedidos do cliente são enviados diretamente para o WhatsApp informado no site; eles não são gravados num painel central. Para a equipe administrar pedidos, estoque, disponibilidade por item e reservas de diferentes clientes/dispositivos, será necessário configurar uma base de dados (por exemplo, Supabase), autenticação e regras de acesso.</p>
+    <span class="card-kicker">Importante</span><h2>Como a disponibilidade é calculada</h2>
+    <p>Para cada data, o sistema soma as quantidades reservadas nas festas não canceladas e as quantidades bloqueadas manualmente. Uma nova festa só é salva quando a quantidade pedida não ultrapassa o estoque cadastrado. Festas diferentes no mesmo dia aparecem separadamente no calendário. Esta lógica ainda funciona somente neste navegador; a versão de produção precisará de banco de dados e login para impedir conflitos entre pessoas usando aparelhos diferentes.</p>
   </section>
 </main>
 <script src="gestao.js"></script>

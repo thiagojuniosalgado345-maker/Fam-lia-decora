@@ -279,7 +279,7 @@ async function commitGithubSnapshot(snapshotValue, successMessage = "Alteraçõe
     $("publishAvailability").disabled = !githubReady;
   }
 }
-function writeStorage(key, value, successMessage = "") {
+async function writeStorage(key, value, successMessage = "") {
   if (!githubReady) {
     alert("Primeiro conecte a agenda ao GitHub na parte superior desta página.");
     return false;
@@ -293,7 +293,11 @@ function writeStorage(key, value, successMessage = "") {
     events:key === EVENT_KEY ? value : events,
     unavailable:key === UNAVAILABLE_KEY ? value : unavailable
   };
-  void commitGithubSnapshot(snapshot,successMessage);
+  const saved = await commitGithubSnapshot(snapshot,successMessage);
+  if (!saved) return false;
+  if (key === PRODUCT_KEY) products = value;
+  if (key === EVENT_KEY) events = value;
+  if (key === UNAVAILABLE_KEY) unavailable = value;
   return true;
 }
 async function loadGithubIntoPanel(documentData, sha) {
@@ -531,11 +535,11 @@ function maximumUsedQuantity(productId) {
   });
   return maximum;
 }
-function saveEvents() {
-  return writeStorage(EVENT_KEY, events);
+function saveEvents(nextEvents = events, message = "Agenda atualizada.") {
+  return writeStorage(EVENT_KEY, nextEvents, message);
 }
-function saveUnavailable() {
-  return writeStorage(UNAVAILABLE_KEY, unavailable);
+function saveUnavailable(nextUnavailable = unavailable, message = "Bloqueios atualizados.") {
+  return writeStorage(UNAVAILABLE_KEY, nextUnavailable, message);
 }
 function statusLabel(status) {
   return ({confirmada:"Confirmada",orcamento:"Em negociação",cancelada:"Cancelada",concluida:"Concluída"})[status] || "Confirmada";
@@ -612,11 +616,12 @@ function renderBookingsForDate() {
       button.addEventListener("click", () => editEvent(button.dataset.editEvent));
     });
     $("bookingsForDate").querySelectorAll("[data-delete-event]").forEach(button => {
-      button.addEventListener("click", () => {
+      button.addEventListener("click", async () => {
         if (!confirm("Excluir esta festa da agenda?")) return;
-        events = events.filter(event => event.id !== button.dataset.deleteEvent);
-        if (saveEvents()) {
-          if (editingEventId === button.dataset.deleteEvent) resetEventForm();
+        const eventId = button.dataset.deleteEvent;
+        const nextEvents = events.filter(event => event.id !== eventId);
+        if (await saveEvents(nextEvents,"Festa excluída da agenda.")) {
+          if (editingEventId === eventId) resetEventForm();
           renderAll();
         }
       });
@@ -637,10 +642,10 @@ function renderBlocksForDate() {
 }
 function attachReleaseButtons(container) {
   container.querySelectorAll("[data-release-block]").forEach(button => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
       if (!confirm("Liberar esta peça para novos agendamentos?")) return;
-      unavailable = unavailable.filter(item => item.id !== button.dataset.releaseBlock);
-      if (saveUnavailable()) renderAll();
+      const nextUnavailable = unavailable.filter(item => item.id !== button.dataset.releaseBlock);
+      if (await saveUnavailable(nextUnavailable,"Bloqueio removido e peça liberada.")) renderAll();
     });
   });
 }
@@ -706,7 +711,7 @@ function renderProducts() {
     button.addEventListener("click", () => editProduct(button.dataset.editProduct));
   });
   $("productRows").querySelectorAll("[data-delete-product]").forEach(button => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
       const id = button.dataset.deleteProduct;
       if (events.some(event => event.items.some(item => item.productId === id)) ||
           unavailable.some(item => item.productId === id)) {
@@ -714,8 +719,8 @@ function renderProducts() {
         return;
       }
       if (!confirm("Excluir esta peça do catálogo?")) return;
-      products = products.filter(product => product.id !== id);
-      if (writeStorage(PRODUCT_KEY, products)) renderAll();
+      const nextProducts = products.filter(product => product.id !== id);
+      if (await writeStorage(PRODUCT_KEY,nextProducts,"Produto excluído do catálogo.")) renderAll();
     });
   });
 }
@@ -843,7 +848,7 @@ $("publishAvailability").addEventListener("change", async event => {
     event.target.checked = previous;
   }
 });
-$("productForm").addEventListener("submit", event => {
+$("productForm").addEventListener("submit", async event => {
   event.preventDefault();
   const data = new FormData(event.currentTarget);
   const stock = Number(data.get("stock"));
@@ -879,20 +884,20 @@ $("productForm").addEventListener("submit", event => {
   const nextProducts = wasEditing
     ? products.map(item => item.id === editingProductId ? product : item)
     : [...products, product];
-  if (!writeStorage(PRODUCT_KEY, nextProducts, wasEditing ? "Produto atualizado." : "Produto cadastrado.")) return;
+  if (!await writeStorage(PRODUCT_KEY, nextProducts, wasEditing ? "Produto atualizado." : "Produto cadastrado.")) return;
   products = nextProducts;
   resetProductForm();
   renderAll();
   
 });
 $("cancelEdit").addEventListener("click", resetProductForm);
-$("restoreProducts").addEventListener("click", () => {
+$("restoreProducts").addEventListener("click", async () => {
   if (events.length || unavailable.length) {
     alert("Antes de restaurar o catálogo, remova os agendamentos e bloqueios que usam as peças cadastradas.");
     return;
   }
   if (!confirm("Restaurar os produtos de exemplo? Isso substituirá o catálogo salvo neste navegador.")) return;
-  if (!writeStorage(PRODUCT_KEY, DEFAULT, "Catálogo de exemplo restaurado.")) return;
+  if (!await writeStorage(PRODUCT_KEY, DEFAULT, "Catálogo de exemplo restaurado.")) return;
   products = DEFAULT.slice();
   resetProductForm();
   renderAll();
@@ -917,7 +922,7 @@ $("importCatalog").addEventListener("change", async event => {
     const newIds = new Set(validated.map(product => product.id));
     const referencedIds = new Set(events.flatMap(event => event.items.map(item => item.productId)).concat(unavailable.map(item => item.productId)));
     if (Array.from(referencedIds).some(id => !newIds.has(id))) throw new Error("A importação removeria peças usadas na agenda.");
-    if (!writeStorage(PRODUCT_KEY, validated, "Catálogo importado.")) return;
+    if (!await writeStorage(PRODUCT_KEY, validated, "Catálogo importado.")) return;
     products = validated;
     resetProductForm();
     renderAll();
@@ -930,7 +935,7 @@ $("importCatalog").addEventListener("change", async event => {
     event.target.value = "";
   }
 });
-$("eventForm").addEventListener("submit", event => {
+$("eventForm").addEventListener("submit", async event => {
   event.preventDefault();
   const form = event.currentTarget;
   if (!form.reportValidity()) return;
@@ -983,7 +988,7 @@ $("eventForm").addEventListener("submit", event => {
   const nextEvents = wasEditing
     ? events.map(item => item.id === editingEventId ? record : item)
     : [...events, record];
-  if (!writeStorage(EVENT_KEY, nextEvents, wasEditing ? "Festa atualizada." : "Festa adicionada à agenda.")) return;
+  if (!await writeStorage(EVENT_KEY, nextEvents, wasEditing ? "Festa atualizada." : "Festa adicionada à agenda.")) return;
   events = nextEvents;
   selectedDate = date;
   const selected = dateFromISO(date);
@@ -1028,7 +1033,7 @@ $("nextMonth").addEventListener("click", () => {
   if (!editingEventId) $("eventForm").elements.date.value = selectedDate;
   renderEventItems();
 });
-$("unavailableForm").addEventListener("submit", event => {
+$("unavailableForm").addEventListener("submit", async event => {
   event.preventDefault();
   if (!products.length) {
     alert("Cadastre primeiro as peças e suas quantidades.");
@@ -1062,15 +1067,15 @@ $("unavailableForm").addEventListener("submit", event => {
       return;
     }
   }
-  unavailable.push({
+  const nextUnavailable = [...unavailable,{
     id:randomId("bloqueio"),
     productId,
     quantity,
     startDate,
     endDate,
     reason:reason.slice(0,120)
-  });
-  if (saveUnavailable()) {
+  }];
+  if (await saveUnavailable(nextUnavailable,"Bloqueio salvo e estoque atualizado.")) {
     event.currentTarget.reset();
     $("unavailableForm").elements.quantity.value = "1";
     $("unavailableForm").elements.startDate.value = localDateISO();

@@ -13,7 +13,8 @@ function renderProducts(){
  $("productRows").innerHTML=products.map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(p.category)}</td><td><button type="button" data-delete="${esc(p.id)}">Excluir</button></td></tr>`).join("")||'<tr><td colspan="3">Nenhum produto cadastrado.</td></tr>';
  $("productRows").querySelectorAll("[data-delete]").forEach(b=>b.addEventListener("click",()=>{if(!confirm("Excluir este produto do catálogo?"))return;products=products.filter(p=>p.id!==b.dataset.delete);write(PRODUCT_KEY,products);renderProducts()}));
 }
-function localDateISO(){const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-")}\nfunction renderBlocked(){
+function localDateISO(){const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-")}
+function renderBlocked(){
  blocked.sort((a,b)=>a.date.localeCompare(b.date));
  $("blockedRows").innerHTML=blocked.map(x=>`<tr><td>${new Date(x.date+"T12:00:00").toLocaleDateString("pt-BR")}</td><td>${esc(x.note||"Data bloqueada")}</td><td><button type="button" data-unblock="${esc(x.date)}">Desbloquear</button></td></tr>`).join("")||'<tr><td colspan="3">Nenhuma data anotada.</td></tr>';
  $("blockedRows").querySelectorAll("[data-unblock]").forEach(b=>b.addEventListener("click",()=>{blocked=blocked.filter(x=>x.date!==b.dataset.unblock);write(BLOCK_KEY,blocked);renderBlocked()}));

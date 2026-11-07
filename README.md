@@ -15,9 +15,10 @@ A área de gestão grava diretamente no arquivo `data/agenda.json`, usando a API
 1. Abra `gestao.html` no endereço publicado.
 2. Crie um token **Fine-grained** no GitHub, limitado ao repositório `Fam-lia-decora`, com a permissão **Contents: Read and write**. Não dê acesso a todos os repositórios.
 3. Informe o token e uma senha forte da agenda com pelo menos 16 caracteres.
-4. A senha deriva uma chave com PBKDF2-SHA-256 (310.000 iterações); os detalhes de festas e bloqueios são criptografados com AES-256-GCM antes de o navegador enviar o arquivo ao GitHub.
-5. O token e a senha da agenda ficam somente na memória da página. Não são gravados no repositório nem no armazenamento do navegador. Ao fechar ou atualizar a página, será necessário informá-los novamente.
-6. O arquivo de dados é gravado com controle de versão do GitHub. Se outro acesso tiver atualizado o arquivo, o painel detecta a divergência e pede atualização para evitar sobrescrever a agenda mais nova.
+4. Confira e cadastre os produtos e o estoque físico. Só então marque **Publicar disponibilidade por data na loja**. A publicação começa desativada para evitar mostrar como disponível um estoque de exemplo ainda não conferido.
+5. A senha deriva uma chave com PBKDF2-SHA-256 (310.000 iterações); os detalhes de festas e bloqueios são criptografados com AES-256-GCM antes de o navegador enviar o arquivo ao GitHub.
+6. O token e a senha da agenda ficam somente na memória da página. Não são gravados no repositório nem no armazenamento do navegador. Ao fechar ou atualizar a página, será necessário informá-los novamente.
+7. O arquivo de dados é gravado com controle de versão do GitHub. Se outro acesso tiver atualizado o arquivo, o painel detecta a divergência e pede atualização para evitar sobrescrever a agenda mais nova.
 
 A primeira conexão pode oferecer a migração de produtos, festas e bloqueios que estavam salvos no armazenamento local deste navegador. Exporte uma cópia completa antes de migrar ou restaurar dados importantes.
 

@@ -12,7 +12,22 @@
 <div class="announcement">FAMÍLIA DECORA <span>—</span> AGENDA E CONTROLE DE PEÇAS</div>
 <main class="container management">
   <div class="management-header"><div><div class="eyebrow"><span></span> Organização da loja</div><h1>Agenda da Família Decora</h1><p>Visualize festas por dia e acompanhe quais peças estão reservadas ou indisponíveis.</p></div><a class="button button-soft" href="index.html">← Voltar à loja</a></div>
-  <div class="local-warning"><strong>Versão de demonstração — dados salvos somente neste navegador.</strong> A agenda aceita várias festas no mesmo dia e calcula a disponibilidade das peças cadastradas, mas ainda não sincroniza com outros aparelhos nem tem login. Até conectar o banco de dados e proteger o acesso, use apenas dados fictícios para testar. Não use esta versão como agenda oficial nem registre dados pessoais reais de clientes.</div>
+  <section class="management-card github-connection" aria-labelledby="githubConnectionTitle">
+    <div class="card-heading"><div><span class="card-kicker">Conexão segura</span><h2 id="githubConnectionTitle">Sincronizar com o GitHub</h2></div><span class="github-status" id="githubStatus" role="status" aria-live="polite">Não conectado</span></div>
+    <p class="management-help">O catálogo e a disponibilidade por data ficam publicados no arquivo do site. Os detalhes da agenda e os bloqueios são criptografados antes de serem enviados ao GitHub. A senha de criptografia e o token ficam somente na memória desta página e precisam ser informados novamente quando ela for reaberta.</p>
+    <div class="github-credentials">
+      <label>Token de acesso do GitHub<input id="githubToken" type="password" autocomplete="off" spellcheck="false" placeholder="Cole aqui seu token fine-grained"></label>
+      <label>Senha forte da agenda (mínimo 16 caracteres)<input id="agendaPassphrase" type="password" autocomplete="new-password" minlength="16" placeholder="Use uma frase longa que não utiliza em outros sites"></label>
+    </div>
+    <div class="form-actions github-actions">
+      <button class="button button-primary" id="connectGithub" type="button">Conectar e carregar agenda</button>
+      <button class="button button-soft" id="refreshGithub" type="button" disabled>Atualizar do GitHub</button>
+      <button class="button button-soft" id="disconnectGithub" type="button" disabled>Desconectar</button>
+    </div>
+    <p class="github-security-note">Crie um token <strong>Fine-grained</strong> no GitHub, limitado somente ao repositório <strong>Fam-lia-decora</strong>, com permissão <strong>Contents: Read and write</strong>. Não conceda acesso a todos os repositórios. <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer">Abrir criação de token no GitHub ↗</a></p>
+    <p class="github-security-note"><strong>Privacidade:</strong> a disponibilidade por data e o catálogo são públicos para os visitantes. Os nomes/códigos dos pedidos, observações, festas e bloqueios ficam criptografados no arquivo. Mesmo assim, prefira usar códigos internos (ex.: FD-001), nunca telefone, CPF, endereço residencial ou dados de pagamento.</p>
+  </section>
+  <div class="local-warning"><strong>Como funciona agora</strong> Ao salvar uma alteração, esta página grava uma nova versão no repositório Família Decora. Se outro aparelho tiver gravado primeiro, o painel detecta o conflito para não apagar alterações. O site público consulta os números disponíveis por data e atualiza a vitrine automaticamente.</div>
 
   <section class="management-card agenda-card">
     <div class="card-heading"><div><span class="card-kicker">01 / Calendário</span><h2>Agenda de festas</h2></div><span class="count-pill" id="monthEventTotal">0 festas no mês</span></div>
@@ -37,12 +52,12 @@
   <section class="management-card" id="eventEditorCard">
     <div class="card-heading"><div><span class="card-kicker">02 / Novo agendamento</span><h2 id="eventFormTitle">Cadastrar festa de cliente</h2></div></div>
     <form id="eventForm" class="management-form event-form">
-      <label>Cliente ou código do pedido<input name="client" required maxlength="80" placeholder="Ex.: Cliente A ou Pedido 001"></label>
+      <label>Código interno do pedido<input name="client" required maxlength="80" placeholder="Ex.: FD-001 (evite nomes completos)"></label>
       <label>Data da festa<input name="date" type="date" required></label>
       <label>Tipo de evento<select name="eventType"><option>Aniversário</option><option>Casamento</option><option>Chá de bebê / revelação</option><option>Batizado</option><option>Confraternização</option><option>Outro</option></select></label>
       <label>Bairro / região<input name="neighborhood" maxlength="80" placeholder="Local do evento (opcional)"></label>
       <label>Situação<select name="status"><option value="confirmada">Confirmada</option><option value="orcamento">Em negociação</option><option value="cancelada">Cancelada</option><option value="concluida">Concluída</option></select></label>
-      <label class="wide">Observações<textarea name="notes" rows="2" maxlength="400" placeholder="Horário, tema, retirada, entrega ou outros detalhes"></textarea></label>
+      <label class="wide">Observações internas<textarea name="notes" rows="2" maxlength="400" placeholder="Horário, tema, montagem ou detalhes operacionais. Não inclua dados pessoais."></textarea></label>
       <div class="wide event-items-editor">
         <div class="inline-heading"><div><strong>Peças reservadas para esta festa</strong><small>Escolha os painéis, móveis ou objetos que sairão para o evento.</small></div><button class="button button-soft" id="addEventItem" type="button">+ Adicionar peça</button></div>
         <div id="eventItems" class="event-item-rows"></div>
@@ -79,12 +94,12 @@
       <div class="wide form-actions"><button class="button button-primary" id="saveProduct" type="submit">Salvar produto +</button><button class="button button-soft" id="cancelEdit" type="button" hidden>Cancelar edição</button><button class="button button-soft" id="restoreProducts" type="button">Restaurar catálogo de exemplo</button></div>
     </form>
     <div class="table-scroll inventory-table-wrap"><table class="management-table"><thead><tr><th>Peça</th><th>Categoria</th><th>Estoque</th><th>Ação</th></tr></thead><tbody id="productRows"></tbody></table></div>
-    <div class="form-actions export-actions"><button class="button button-soft" id="exportCatalog" type="button">Baixar cópia do catálogo (JSON)</button><label class="button button-soft file-button">Importar catálogo<input id="importCatalog" type="file" accept="application/json,.json"></label></div>
+    <div class="form-actions export-actions"><button class="button button-soft" id="exportCatalog" type="button">Baixar catálogo (JSON)</button><label class="button button-soft file-button">Importar catálogo<input id="importCatalog" type="file" accept="application/json,.json"></label></div>
   </section>
 
   <section class="management-card backup-card">
     <span class="card-kicker">Importante</span><h2>Como a disponibilidade é calculada</h2>
-    <p>Para cada data, o sistema soma as quantidades reservadas nas festas não canceladas e as quantidades bloqueadas manualmente. Uma nova festa só é salva quando a quantidade pedida não ultrapassa o estoque cadastrado. Festas diferentes no mesmo dia aparecem separadamente no calendário. Esta lógica ainda funciona somente neste navegador; a versão de produção precisará de banco de dados e login para impedir conflitos entre pessoas usando aparelhos diferentes.</p>
+    <p>Para cada data, o sistema soma as quantidades reservadas nas festas não canceladas e os bloqueios manuais. Uma nova festa só é salva quando a quantidade pedida não ultrapassa o estoque físico. Festas diferentes no mesmo dia aparecem separadamente. O arquivo público contém somente o catálogo e os totais de disponibilidade; os detalhes das festas e bloqueios são criptografados antes do envio ao GitHub.</p>
   </section>
 </main>
 <script src="gestao.js"></script>

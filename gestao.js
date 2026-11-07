@@ -1056,13 +1056,7 @@ $("unavailableForm").elements.startDate.addEventListener("change", event => {
   }
 });
 $("exportCatalog").setAttribute("aria-label", "Baixar cópia do catálogo em JSON");
-const exportAgenda = document.createElement("button");
-exportAgenda.type = "button";
-exportAgenda.className = "button button-soft";
-exportAgenda.id = "exportAgenda";
-exportAgenda.textContent = "Exportar agenda e bloqueios (JSON)";
-$("unavailableList").parentElement.appendChild(exportAgenda);
-exportAgenda.addEventListener("click", () => {
+$("exportAgenda").addEventListener("click", () => {
   const backup = {version:1,exportedAt:new Date().toISOString(),events,unavailable,products};
   const blob = new Blob([JSON.stringify(backup,null,2)], {type:"application/json"});
   const url = URL.createObjectURL(blob);
@@ -1071,6 +1065,53 @@ exportAgenda.addEventListener("click", () => {
   link.download = "familia-decora-agenda-backup.json";
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+$("importBackup").addEventListener("change", async event => {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  try {
+    if (file.size > 8_000_000) throw new Error("A cópia é grande demais para importar.");
+    const parsed = JSON.parse(await file.text());
+    if (parsed.version !== 1 || !Array.isArray(parsed.products) ||
+        !Array.isArray(parsed.events) || !Array.isArray(parsed.unavailable)) {
+      throw new Error("O arquivo não é uma cópia completa válida da agenda.");
+    }
+    const nextProducts = normalizeCatalog(parsed.products);
+    if (!nextProducts || nextProducts.length !== parsed.products.length) {
+      throw new Error("O catálogo da cópia contém produtos inválidos.");
+    }
+    const previous = {products,events,unavailable};
+    products = nextProducts;
+    const nextEvents = normalizeEvents(parsed.events);
+    const nextUnavailable = normalizeUnavailable(parsed.unavailable);
+    products = previous.products;
+    if (nextEvents.length !== parsed.events.length || nextUnavailable.length !== parsed.unavailable.length) {
+      throw new Error("A cópia contém festas/bloqueios inválidos ou referências a produtos inexistentes.");
+    }
+    products = nextProducts;
+    events = nextEvents;
+    unavailable = nextUnavailable;
+    const conflict = products.find(product => maximumUsedQuantity(product.id) > product.stock);
+    products = previous.products;
+    events = previous.events;
+    unavailable = previous.unavailable;
+    if (conflict) throw new Error("A cópia excede o estoque de " + conflict.name + ". Ajuste as quantidades antes de restaurar.");
+    if (!githubReady) throw new Error("Conecte ao GitHub antes de restaurar a cópia.");
+    if (!confirm("Restaurar esta cópia completa? Ela substituirá o catálogo, a agenda e os bloqueios atuais no GitHub.")) return;
+    const saved = await commitGithubSnapshot({products:nextProducts,events:nextEvents,unavailable:nextUnavailable},"Cópia completa restaurada.");
+    if (saved) {
+      products = nextProducts;
+      events = nextEvents;
+      unavailable = nextUnavailable;
+      resetProductForm();
+      resetEventForm();
+      renderAll();
+    }
+  } catch (error) {
+    alert(error.message || "Não foi possível restaurar a cópia.");
+  } finally {
+    event.target.value = "";
+  }
 });
 $("eventForm").elements.date.min = localDateISO();
 $("cancelEdit").hidden = true;

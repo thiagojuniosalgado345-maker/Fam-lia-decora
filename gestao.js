@@ -1,5 +1,6 @@
-/* Agenda e estoque local de demonstração da Família Decora.
-   Não substitui banco de dados, autenticação ou sincronização entre aparelhos. */
+/* Agenda e estoque da Família Decora.
+   Lê e grava o arquivo data/agenda.json no GitHub; os detalhes privados são criptografados no navegador.
+   O controle por SHA reduz conflitos, mas não substitui um banco transacional com gravações simultâneas. */
 const PRODUCT_KEY = "familia-decora-products-v2";
 const EVENT_KEY = "familia-decora-events-v1";
 const UNAVAILABLE_KEY = "familia-decora-unavailable-items-v1";
@@ -470,9 +471,12 @@ function normalizeUnavailable(value) {
     if (!item || typeof item !== "object") return false;
     const id = String(item.id || "");
     const quantity = Number(item.quantity);
-    if (!validId(id) || ids.has(id) || !products.some(product => product.id === item.productId) ||
-        !Number.isInteger(quantity) || quantity < 1 || quantity > 100 ||
+    const product = products.find(entry => entry.id === item.productId);
+    if (!validId(id) || ids.has(id) || !product ||
+        !Number.isInteger(quantity) || quantity < 1 || quantity > product.stock ||
         !validDate(item.startDate) || !validDate(item.endDate) || item.endDate < item.startDate) return false;
+    const span = Math.round((dateFromISO(item.endDate) - dateFromISO(item.startDate)) / 86400000);
+    if (span > 365) return false;
     ids.add(id);
     return true;
   }).map(item => ({
@@ -896,7 +900,7 @@ $("restoreProducts").addEventListener("click", async () => {
     alert("Antes de restaurar o catálogo, remova os agendamentos e bloqueios que usam as peças cadastradas.");
     return;
   }
-  if (!confirm("Restaurar os produtos de exemplo? Isso substituirá o catálogo salvo neste navegador.")) return;
+  if (!confirm("Restaurar os produtos de exemplo? Isso substituirá o catálogo atual salvo no GitHub e apagará os produtos personalizados. Esta ação não pode ser desfeita sem uma cópia de segurança.")) return;
   if (!await writeStorage(PRODUCT_KEY, DEFAULT, "Catálogo de exemplo restaurado.")) return;
   products = DEFAULT.slice();
   resetProductForm();

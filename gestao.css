@@ -97,3 +97,22 @@
 .day-resource-blocks{border-top:1px solid var(--line);padding-top:15px;margin-top:18px}
 .day-resource-blocks h4{font:600 15px var(--serif);color:var(--rose-deep);margin:0 0 10px}
 .calendar-day.selected .calendar-day-blocks{color:#fff2d9}
+
+
+/* Conexão GitHub e proteção da agenda */
+.github-connection{border-color:var(--pink-200);background:linear-gradient(145deg,#fff 0%,#fffafd 100%)}
+.github-status{display:inline-flex;align-items:center;gap:7px;border-radius:30px;padding:7px 11px;background:#f3eeee;color:#75666d;font-size:10px;font-weight:700}
+.github-status::before{content:"";width:7px;height:7px;border-radius:50%;background:#a99da2}
+.github-status.is-connected{background:#eaf4ed;color:#376c48}
+.github-status.is-connected::before{background:#438b5b}
+.github-status.is-saving{background:#fff3dc;color:#88621f}
+.github-status.is-saving::before{background:#c18b28}
+.github-credentials{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}
+.github-credentials label{display:grid;gap:6px;font-size:10px;font-weight:700;color:#78656e}
+.github-credentials input{width:100%;min-width:0;border:1px solid var(--line);border-radius:9px;padding:12px;font:12px var(--sans);color:var(--ink);background:#fff}
+.github-credentials input:focus-visible{outline:3px solid #c68ba1;outline-offset:2px;border-color:var(--pink-300)}
+.github-security-note{font-size:10px;color:var(--muted);line-height:1.75;margin:12px 0 0}
+.github-security-note a{color:var(--rose-dark);font-weight:700;text-underline-offset:3px}
+.github-actions{margin:4px 0 8px}
+.github-actions .button:disabled{opacity:.5;cursor:not-allowed}
+@media(max-width:650px){.github-credentials{grid-template-columns:1fr}.github-actions .button{width:100%}}

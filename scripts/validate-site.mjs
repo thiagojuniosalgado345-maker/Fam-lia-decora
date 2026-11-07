@@ -7,6 +7,7 @@ const required = [
   "gestao.html",
   "gestao.css",
   "gestao.js",
+  "data/agenda.json",
   "assets/logo-familia-decora.webp"
 ];
 
@@ -94,7 +95,14 @@ const adminRequiredIds = [
   "eventItems",
   "unavailableForm",
   "unavailableList",
-  "exportCatalog"
+  "exportCatalog",
+  "githubToken",
+  "agendaPassphrase",
+  "connectGithub",
+  "refreshGithub",
+  "disconnectGithub",
+  "exportAgenda",
+  "importBackup"
 ];
 const adminIds = new Set([...management.matchAll(/\bid=["']([^"']+)["']/g)].map(match => match[1]));
 const missingAdminIds = adminRequiredIds.filter(id => !adminIds.has(id));
@@ -103,10 +111,46 @@ if (missingAdminIds.length) {
 }
 
 const managementScript = readFileSync("gestao.js", "utf8");
-for (const requiredFeature of ["EVENT_KEY", "UNAVAILABLE_KEY", "availableQuantity", "bookedQuantity", "blockedQuantity", "renderBlocksForDate", "calendar-day-count"]) {
+for (const requiredFeature of [
+  "EVENT_KEY",
+  "UNAVAILABLE_KEY",
+  "availableQuantity",
+  "bookedQuantity",
+  "blockedQuantity",
+  "renderBlocksForDate",
+  "calendar-day-count",
+  "GITHUB_API_URL",
+  "commitGithubSnapshot",
+  "buildPublicAvailability",
+  "AES-GCM",
+  "PBKDF2-SHA-256",
+  "CRYPTO_ITERATIONS"
+]) {
   if (!managementScript.includes(requiredFeature)) {
-    throw new Error("Funcionalidade da agenda/estoque ausente: " + requiredFeature);
+    throw new Error("Funcionalidade da agenda/estoque/GitHub ausente: " + requiredFeature);
   }
 }
 
-console.log("Validação final concluída: loja, privacidade, contato, SEO e área demonstrativa.");
+const publicApp = readFileSync("app.js", "utf8");
+for (const requiredFeature of ["PUBLIC_DATA_URL", "loadPublicData", "availabilityFor"]) {
+  if (!publicApp.includes(requiredFeature)) {
+    throw new Error("Integração da vitrine com a disponibilidade ausente: " + requiredFeature);
+  }
+}
+
+const dataFile = JSON.parse(readFileSync("data/agenda.json", "utf8"));
+if (dataFile.schemaVersion !== 1 || !Array.isArray(dataFile.products) ||
+    !dataFile.availability || typeof dataFile.availability.days !== "object" ||
+    !Object.prototype.hasOwnProperty.call(dataFile, "privateAgenda")) {
+  throw new Error("data/agenda.json não possui a estrutura pública/privada esperada.");
+}
+if (Object.prototype.hasOwnProperty.call(dataFile, "events") ||
+    Object.prototype.hasOwnProperty.call(dataFile, "unavailable")) {
+  throw new Error("Dados de festas ou bloqueios não podem aparecer em texto aberto no arquivo público.");
+}
+if (dataFile.privateAgenda && (!dataFile.privateAgenda.ciphertext ||
+    dataFile.privateAgenda.algorithm !== "AES-256-GCM")) {
+  throw new Error("O conteúdo privado da agenda não está criptografado no formato esperado.");
+}
+
+console.log("Validação final concluída: loja, privacidade, criptografia, GitHub e disponibilidade pública.");

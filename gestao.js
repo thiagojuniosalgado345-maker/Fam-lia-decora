@@ -236,7 +236,7 @@ function renderCalendar() {
       selectedDate = button.dataset.calendarDate;
       renderCalendar();
       renderBookingsForDate();
-      $("eventForm").elements.date.value = selectedDate;
+      if (!editingEventId) $("eventForm").elements.date.value = selectedDate;
       renderEventItems();
     });
   });
@@ -627,7 +627,7 @@ $("previousMonth").addEventListener("click", () => {
   selectedDate = localDateISO(currentMonth);
   renderCalendar();
   renderBookingsForDate();
-  $("eventForm").elements.date.value = selectedDate;
+  if (!editingEventId) $("eventForm").elements.date.value = selectedDate;
   renderEventItems();
 });
 $("nextMonth").addEventListener("click", () => {
@@ -635,7 +635,7 @@ $("nextMonth").addEventListener("click", () => {
   selectedDate = localDateISO(currentMonth);
   renderCalendar();
   renderBookingsForDate();
-  $("eventForm").elements.date.value = selectedDate;
+  if (!editingEventId) $("eventForm").elements.date.value = selectedDate;
   renderEventItems();
 });
 $("unavailableForm").addEventListener("submit", event => {

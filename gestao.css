@@ -160,3 +160,12 @@
 .legend-dot{
   border-radius:3px;
 }
+
+
+/* Foco visível para navegação por teclado no calendário */
+.calendar-day:focus-visible{
+  outline:3px solid #c989a4;
+  outline-offset:2px;
+  position:relative;
+  z-index:1;
+}

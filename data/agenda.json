@@ -61,7 +61,8 @@
   "availability": {
     "from": null,
     "through": null,
-    "days": {}
+    "days": {},
+    "enabled": false
   },
   "privateAgenda": null
 }

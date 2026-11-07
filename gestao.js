@@ -156,14 +156,15 @@ $("productForm").addEventListener("submit", event => {
     alert("Confira os campos do produto. Nome, categoria e descrição são obrigatórios.");
     return;
   }
-  const nextProducts = editingId
+  const wasEditing = Boolean(editingId);
+  const nextProducts = wasEditing
     ? products.map(item => item.id === editingId ? product : item)
     : [...products, product];
   if (!writeStorage(PRODUCT_KEY, nextProducts)) return;
   products = nextProducts;
   resetProductForm();
   renderProducts();
-  alert(editingId ? "Produto atualizado neste navegador." : "Produto salvo neste navegador.");
+  alert(wasEditing ? "Produto atualizado neste navegador." : "Produto salvo neste navegador.");
 });
 $("cancelEdit").addEventListener("click", resetProductForm);
 $("restoreProducts").addEventListener("click", () => {

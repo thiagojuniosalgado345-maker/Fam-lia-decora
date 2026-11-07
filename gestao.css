@@ -5,3 +5,89 @@
 .management-table td{vertical-align:middle}
 .management-form input:focus-visible,.management-form select:focus-visible,.block-form input:focus-visible{outline:3px solid #c68ba1;outline-offset:2px}
 @media(max-width:650px){.management-table{min-width:520px}}
+
+
+/* Agenda de festas e disponibilidade individual do acervo */
+.agenda-card{padding:24px}
+.calendar-toolbar{display:flex;align-items:center;justify-content:center;gap:22px;margin:8px 0 18px}
+.calendar-toolbar h3{min-width:190px;text-align:center;text-transform:capitalize;font:600 23px var(--serif);color:var(--rose-dark);margin:0}
+.calendar-nav{width:37px;height:37px;border:1px solid var(--pink-200);border-radius:50%;background:#fff;color:var(--rose-dark);font-size:25px;line-height:1}
+.calendar-weekdays,.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px}
+.calendar-weekdays{margin-bottom:7px}
+.calendar-weekdays span{text-align:center;color:var(--muted);font-size:10px;font-weight:700;padding:7px 0}
+.calendar-day{min-width:0;min-height:70px;padding:9px 5px 6px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:5px}
+.calendar-day:hover{border-color:var(--pink-300);background:var(--pink-50)}
+.calendar-day-number{font-size:13px;font-weight:700}
+.calendar-day-count{min-width:19px;height:19px;padding:0 5px;display:grid;place-items:center;border-radius:20px;background:var(--pink-100);color:var(--rose-dark);font-size:10px;font-weight:700}
+.calendar-day-empty{height:19px}
+.calendar-day.outside-month{opacity:.35;background:#faf8f9}
+.calendar-day.has-events{border-color:var(--pink-300)}
+.calendar-day.selected{background:var(--rose-dark);border-color:var(--rose-dark);color:#fff}
+.calendar-day.selected .calendar-day-count{background:#fff;color:var(--rose-dark)}
+.calendar-day.today:not(.selected) .calendar-day-number{color:var(--rose)}
+.calendar-legend{display:flex;gap:18px;justify-content:center;margin:14px 0 25px;color:var(--muted);font-size:10px}
+.calendar-legend span{display:flex;align-items:center;gap:6px}
+.legend-dot{width:9px;height:9px;border-radius:50%;display:inline-block;background:var(--pink-300)}
+.legend-dot.selected{background:var(--rose-dark)}
+.day-events{border-top:1px solid var(--line);padding-top:20px}
+.day-events-heading,.inline-heading,.subsection-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.day-events-heading h3{font:600 19px var(--serif);text-transform:capitalize;margin:4px 0 0;color:var(--rose-dark)}
+.booking-list{display:grid;gap:10px;margin-top:14px}
+.empty-bookings{padding:17px;border-radius:10px;background:var(--pink-50);color:var(--muted);font-size:11px;line-height:1.7}
+.booking-card{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 15px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.booking-card-main{min-width:0}
+.booking-card-title{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.booking-card-title strong{font:600 16px var(--serif);color:var(--rose-deep)}
+.booking-card p{margin:4px 0;font-size:11px;color:var(--muted)}
+.booking-card small{display:block;color:#78666f;font-size:10px;line-height:1.6}
+.booking-notes{margin-top:3px}
+.status-pill{display:inline-block;padding:4px 8px;border-radius:20px;font-size:9px;font-weight:700;background:var(--pink-100);color:var(--rose-dark)}
+.status-cancelada{background:#f2eeee;color:#786c70}
+.status-concluida{background:#e9f2eb;color:#477454}
+.status-orcamento{background:#fff2d9;color:#866522}
+.booking-actions{display:flex;gap:6px;flex-shrink:0}
+.booking-actions button,.danger-action{border:1px solid var(--pink-200);border-radius:20px;background:#fff;color:var(--rose-dark);padding:7px 10px;font-size:10px;font-weight:700}
+.booking-actions .danger-action,.danger-action{border-color:#ecd8d8;color:#985858}
+.event-items-editor{padding:15px;border:1px solid var(--line);border-radius:12px;background:#fffafd}
+.inline-heading strong{display:block;font-size:12px;color:var(--rose-deep)}
+.inline-heading small{display:block;margin-top:3px;color:var(--muted);font-size:10px}
+.event-item-rows{display:grid;gap:9px;margin-top:12px}
+.event-item-row{display:grid;grid-template-columns:minmax(0,1fr) 90px 36px;align-items:end;gap:9px;padding-top:9px;border-top:1px solid var(--line)}
+.event-item-row label{display:grid;gap:5px;color:#78656e;font-size:10px;font-weight:700}
+.event-item-row select,.event-item-row input{width:100%;min-width:0;min-height:40px;border:1px solid var(--line);border-radius:8px;padding:8px 9px;background:#fff;color:var(--ink);font:12px var(--sans)}
+.remove-item-button{width:34px;height:38px;border:1px solid #ecd8d8;border-radius:9px;background:#fff;color:#985858;font-size:20px}
+.subsection-heading{margin:22px 0 10px}
+.subsection-heading h3{font:600 18px var(--serif);margin:0;color:var(--rose-deep)}
+.unavailable-list{display:grid;gap:9px}
+.unavailable-card{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:10px}
+.unavailable-card strong,.unavailable-card small{display:block}
+.unavailable-card strong{font-size:12px;color:var(--rose-deep)}
+.unavailable-card small{margin-top:4px;color:var(--muted);font-size:10px;line-height:1.5}
+.inventory-table-wrap{margin-top:22px}
+.management-form textarea{width:100%;border:1px solid var(--line);border-radius:9px;padding:11px 12px;font:12px var(--sans);color:var(--ink);resize:vertical}
+.management-form textarea:focus-visible,.event-item-row select:focus-visible,.event-item-row input:focus-visible{outline:3px solid #c68ba1;outline-offset:2px}
+@media(max-width:680px){
+  .agenda-card{padding:15px}
+  .calendar-toolbar{gap:12px}
+  .calendar-toolbar h3{min-width:160px;font-size:20px}
+  .calendar-weekdays,.calendar-grid{gap:3px}
+  .calendar-weekdays span{font-size:9px}
+  .calendar-day{min-height:54px;padding:6px 1px 4px;border-radius:7px;gap:4px}
+  .calendar-day-number{font-size:11px}
+  .calendar-day-count{min-width:16px;height:16px;font-size:9px;padding:0 3px}
+  .calendar-day-empty{height:16px}
+  .calendar-legend{font-size:9px;gap:12px}
+  .day-events-heading{align-items:flex-start;flex-direction:column}
+  .day-events-heading .button{width:100%}
+  .booking-card{align-items:flex-start;flex-direction:column}
+  .booking-actions{width:100%}
+  .booking-actions button{flex:1}
+  .event-item-row{grid-template-columns:minmax(0,1fr) 68px 34px;gap:6px}
+  .event-item-row label{font-size:9px}
+  .event-item-row select,.event-item-row input{font-size:10px;padding:7px 5px}
+  .inline-heading{align-items:flex-start;flex-direction:column}
+  .inline-heading .button{width:100%}
+  .unavailable-card{align-items:flex-start;flex-direction:column}
+  .unavailable-card button{width:100%}
+  .subsection-heading{align-items:flex-start;flex-direction:column}
+}

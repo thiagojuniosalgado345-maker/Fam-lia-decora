@@ -171,7 +171,7 @@ for (const product of dataFile.products) {
 }
 
 for (const [date, quantities] of Object.entries(dataFile.availability.days)) {
-  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(date) || !quantities || typeof quantities !== "object" || Array.isArray(quantities)) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !quantities || typeof quantities !== "object" || Array.isArray(quantities)) {
     throw new Error("A disponibilidade pública contém uma data ou estrutura inválida.");
   }
   for (const [productId, freeQuantity] of Object.entries(quantities)) {

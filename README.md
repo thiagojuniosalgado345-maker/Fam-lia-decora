@@ -18,10 +18,11 @@ Site independente da loja Família Decora. Este repositório não depende do Bus
 ## Fluxo do cliente
 1. Escolhe produtos e quantidades.
 2. Preenche nome, telefone, data, tipo de evento, preferência de retirada/entrega, bairro e observações.
-3. O navegador prepara uma mensagem e abre o WhatsApp da loja.
-4. O cliente precisa apertar enviar dentro do WhatsApp. O pedido não confirma reserva; a loja confirma disponibilidade, valores e condições.
+3. O cliente marca o consentimento para compartilhar os dados do orçamento.
+4. Como o WhatsApp ainda não foi confirmado, o navegador copia a mensagem e abre o Instagram para que o cliente a cole na conversa. Depois da confirmação do telefone oficial, o fluxo poderá abrir o WhatsApp diretamente.
+5. O cliente revisa e envia a mensagem. O pedido não confirma reserva; a loja confirma disponibilidade, valores e condições.
 
-O site não grava nome, telefone ou detalhes do evento.
+O site não grava nome, telefone ou detalhes do evento. Os dados só são preparados no navegador para compartilhamento pelo canal escolhido pelo cliente.
 
 ## Limitações importantes da área da equipe
 \`gestao.html\` é uma ferramenta provisória local, sem autenticação. Catálogo e datas são salvos no \`localStorage\` do navegador atual. As alterações não são compartilhadas entre celulares/computadores nem entre usuários. O painel não é seguro para uso comercial ou dados de clientes; qualquer pessoa que descubra o endereço pode abrir a página. A remoção do link público e a instrução \`noindex\` não substituem login.

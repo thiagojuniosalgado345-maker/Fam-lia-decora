@@ -85,4 +85,27 @@ if (!/name=["']robots["'] content=["']noindex,nofollow["']/.test(management)) {
   throw new Error("A página de demonstração da equipe deve manter a instrução noindex,nofollow.");
 }
 
+const adminRequiredIds = [
+  "calendarGrid",
+  "calendarTitle",
+  "bookingsForDate",
+  "eventForm",
+  "eventItems",
+  "unavailableForm",
+  "unavailableList",
+  "exportCatalog"
+];
+const adminIds = new Set([...management.matchAll(/\\bid=["']([^"']+)["']/g)].map(match => match[1]));
+const missingAdminIds = adminRequiredIds.filter(id => !adminIds.has(id));
+if (missingAdminIds.length) {
+  throw new Error("Painel de gestão sem elementos da agenda/estoque: " + missingAdminIds.join(", "));
+}
+
+const managementScript = readFileSync("gestao.js", "utf8");
+for (const requiredFeature of ["EVENT_KEY", "UNAVAILABLE_KEY", "availableQuantity", "bookedQuantity", "blockedQuantity", "calendar-day-count"]) {
+  if (!managementScript.includes(requiredFeature)) {
+    throw new Error("Funcionalidade da agenda/estoque ausente: " + requiredFeature);
+  }
+}
+
 console.log("Validação final concluída: loja, privacidade, contato, SEO e área demonstrativa.");

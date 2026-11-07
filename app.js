@@ -1,6 +1,5 @@
-/* Família Decora — catálogo público e solicitação de orçamento.
-   Dados do evento são enviados ao WhatsApp e não são salvos pelo site.
-   O catálogo local é apenas uma solução provisória; não sincroniza aparelhos.
+/* Família Decora — catálogo público, disponibilidade sincronizada e orçamento.
+   O site lê apenas catálogo e totais de disponibilidade; a agenda privada permanece criptografada no GitHub.
 */
 const CONFIG = {
   // Preencher somente depois de a loja confirmar o número oficial com DDI e DDD.
@@ -16,6 +15,9 @@ const DEFAULT_PRODUCTS = [
   {id:"pecas",name:"Bandejas e acessórios",category:"Peças",tag:"Complemente sua festa",description:"Detalhes para completar kits ou criar uma decoração com a sua identidade.",image:"https://images.unsplash.com/photo-1523438885200-e635ba2c371e?auto=format&fit=crop&w=1000&q=85"}
 ];
 const PRODUCTS_KEY = "familia-decora-products-v2";
+const PUBLIC_DATA_URL = "data/agenda.json";
+let publicAvailability = null;
+let publicDataUpdatedAt = null;
 const $ = id => document.getElementById(id);
 const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const safeRead = (key, fallback) => {
@@ -60,10 +62,11 @@ function normalizeProducts(list) {
     category: String(product.category).trim().slice(0, 40),
     tag: String(product.tag || product.category).trim().slice(0, 35),
     description: String(product.description).trim().slice(0, 180),
-    image: safeImageUrl(product.image) || DEFAULT_PRODUCTS[0].image
+    image: safeImageUrl(product.image) || DEFAULT_PRODUCTS[0].image,
+    stock: Number.isInteger(Number(product.stock)) && Number(product.stock) >= 0 ? Number(product.stock) : 1
   }));
 }
-let products = normalizeProducts(safeRead(PRODUCTS_KEY, DEFAULT_PRODUCTS));
+let products = DEFAULT_PRODUCTS.slice();
 let selected = Object.create(null);
 let category = "Todos";
 let query = "";
@@ -79,6 +82,41 @@ function notify(message) {
   toast.classList.add("show");
   clearTimeout(notify.timer);
   notify.timer = setTimeout(() => toast.classList.remove("show"), 3000);
+}
+function getSelectedEventDate() {
+  return $("quoteForm").elements.date.value || "";
+}
+function availabilityFor(product, date) {
+  if (!product || !date || !publicAvailability || date < publicAvailability.from || date > publicAvailability.through) return null;
+  const day = publicAvailability.days && publicAvailability.days[date];
+  if (day && Object.prototype.hasOwnProperty.call(day,product.id)) {
+    return Math.max(0,Number(day[product.id]) || 0);
+  }
+  return Math.max(0,Number(product.stock) || 0);
+}
+async function loadPublicData() {
+  try {
+    const response = await fetch(PUBLIC_DATA_URL + "?v=" + Date.now(),{cache:"no-store"});
+    if (!response.ok) throw new Error("Falha ao consultar catálogo atualizado.");
+    const documentData = await response.json();
+    if (documentData.schemaVersion !== 1 || !Array.isArray(documentData.products)) {
+      throw new Error("Arquivo de catálogo em formato inválido.");
+    }
+    const remoteProducts = normalizeProducts(documentData.products);
+    if (!remoteProducts.length) throw new Error("Nenhum produto válido foi encontrado no catálogo.");
+    products = remoteProducts;
+    publicAvailability = documentData.availability && typeof documentData.availability === "object"
+      ? documentData.availability
+      : null;
+    publicDataUpdatedAt = documentData.updatedAt || null;
+    selected = Object.fromEntries(Object.entries(selected).filter(([id]) => products.some(product => product.id === id)));
+    if (!categories().includes(category)) category = "Todos";
+    renderFilters();
+    renderProducts();
+    renderQuote();
+  } catch (error) {
+    console.warn("Não foi possível atualizar os dados da loja:",error);
+  }
 }
 function categories() {
   return ["Todos", ...new Set(products.map(product => product.category).filter(Boolean))];
@@ -103,22 +141,44 @@ function renderProducts() {
     (category === "Todos" || product.category === category) &&
     [product.name, product.category, product.description, product.tag].join(" ").toLocaleLowerCase("pt-BR").includes(query)
   );
-  $("productGrid").innerHTML = filtered.length ? filtered.map(product =>
-    '<article class="product-card">' +
+  const date = getSelectedEventDate();
+  $("productGrid").innerHTML = filtered.length ? filtered.map(product => {
+    const available = availabilityFor(product,date);
+    const availabilityLabel = !date
+      ? "Informe a data para consultar"
+      : available === null
+        ? "Consulte a equipe para esta data"
+        : available > 0
+          ? available + (available === 1 ? " unidade livre" : " unidades livres") + " na data"
+          : "Sem unidades livres na data";
+    const disabled = available === 0;
+    return '<article class="product-card">' +
       '<div class="product-photo"><img src="' + escapeHtml(product.image) + '" alt="' + escapeHtml(product.name) +
       '" loading="lazy"><span class="photo-label">' + escapeHtml(product.tag || product.category) + '</span></div>' +
       '<div class="product-info"><div class="product-category">' + escapeHtml(product.category) + '</div>' +
       '<h3>' + escapeHtml(product.name) + '</h3><p>' + escapeHtml(product.description) + '</p>' +
-      '<div class="product-bottom"><span class="price-hint">Consulte disponibilidade</span>' +
-      '<button type="button" class="add-button" data-add="' + escapeHtml(product.id) + '">Adicionar ao orçamento +</button></div></div>' +
-    '</article>'
-  ).join("") : '<div class="no-results">Não encontramos itens com essa busca. Tente outro termo ou categoria.</div>';
+      '<div class="product-bottom"><span class="price-hint">' + escapeHtml(availabilityLabel) + '</span>' +
+      '<button type="button" class="add-button" data-add="' + escapeHtml(product.id) + '"' +
+      (disabled ? ' disabled aria-disabled="true"' : '') + '>' +
+      (disabled ? "Indisponível nesta data" : "Adicionar ao orçamento +") + '</button></div></div>' +
+    '</article>';
+  }).join("") : '<div class="no-results">Não encontramos itens com essa busca. Tente outro termo ou categoria.</div>';
   $("productGrid").querySelectorAll("[data-add]").forEach(button => {
     button.addEventListener("click", () => addItem(button.dataset.add));
   });
 }
 function addItem(id) {
-  if (!products.some(product => product.id === id)) return;
+  const product = products.find(item => item.id === id);
+  if (!product) return;
+  const available = availabilityFor(product,getSelectedEventDate());
+  if (available === 0) {
+    notify("Este item não tem unidades livres para a data escolhida.");
+    return;
+  }
+  if (available !== null && (selected[id] || 0) >= available) {
+    notify("Você já selecionou todas as unidades livres para esta data.");
+    return;
+  }
   selected[id] = Math.min(99, (selected[id] || 0) + 1);
   renderQuote();
   openQuote();
@@ -134,7 +194,18 @@ function renderQuote() {
   const entries = quoteEntries();
   const total = entries.reduce((sum, item) => sum + item.quantity, 0);
   $("quoteCount").textContent = total;
-  $("quoteItems").innerHTML = entries.length ? '<div class="quote-lines">' + entries.map(({product, quantity}) =>
+  const date = getSelectedEventDate();
+  $("quoteItems").innerHTML = entries.length ? '<div class="quote-lines">' + entries.map(({product, quantity}) => {
+    const available = availabilityFor(product,date);
+    const availabilityText = !date
+      ? "Informe a data para consultar disponibilidade."
+      : available === null
+        ? "Confirme a disponibilidade com a equipe."
+        : available > 0
+          ? available + (available === 1 ? " unidade livre na data." : " unidades livres na data.")
+          : "Sem unidades livres nesta data.";
+    const plusDisabled = available !== null && quantity >= available;
+    return
     '<div class="quote-line"><img src="' + escapeHtml(product.image) + '" alt=""><div><strong>' +
     escapeHtml(product.name) + '</strong><small>' + escapeHtml(product.category) + '</small>' +
     '<div class="quantity"><button type="button" data-qty="' + escapeHtml(product.id) +
@@ -142,8 +213,8 @@ function renderQuote() {
     '</span><button type="button" data-qty="' + escapeHtml(product.id) +
     '" data-step="1" aria-label="Aumentar quantidade">+</button></div></div>' +
     '<button type="button" class="remove-button" data-remove="' + escapeHtml(product.id) +
-    '" aria-label="Remover item">×</button></div>'
-  ).join("") + '</div>' : '<div class="empty-quote">Seu orçamento ainda está vazio.<br>Escolha as peças que deseja consultar no catálogo. ♡</div>';
+    '" aria-label="Remover item">×</button><small class="quote-availability">' + escapeHtml(availabilityText) + '</small></div>';
+  }).join("") + '</div>' : '<div class="empty-quote">Seu orçamento ainda está vazio.<br>Escolha as peças que deseja consultar no catálogo. ♡</div>';
   $("quoteItems").querySelectorAll("[data-qty]").forEach(button => {
     button.addEventListener("click", () => {
       const id = button.dataset.qty;
@@ -230,6 +301,15 @@ async function sendQuote() {
     form.elements.phone.focus();
     return;
   }
+  for (const item of quoteEntries()) {
+    const available = availabilityFor(item.product,date);
+    if (available === 0 || (available !== null && item.quantity > available)) {
+      notify("A quantidade de " + item.product.name + " não está disponível para a data escolhida. Revise seu orçamento.");
+      renderProducts();
+      renderQuote();
+      return;
+    }
+  }
   const lines = quoteEntries().map(item => "• " + item.quantity + "x " + item.product.name);
   const message = [
     "Olá, Família Decora! Gostaria de solicitar um orçamento.",
@@ -265,6 +345,10 @@ async function sendQuote() {
 function init() {
   $("year").textContent = new Date().getFullYear();
   $("quoteForm").elements.date.min = localToday();
+  $("quoteForm").elements.date.addEventListener("change", () => {
+    renderProducts();
+    renderQuote();
+  });
   $("openQuote").addEventListener("click", openQuote);
   $("faqOpenQuote").addEventListener("click", openQuote);
   $("closeQuote").addEventListener("click", () => closeQuote());
@@ -303,17 +387,13 @@ function init() {
       first.focus();
     }
   });
-  window.addEventListener("storage", event => {
-    if (event.key !== PRODUCTS_KEY) return;
-    products = normalizeProducts(safeRead(PRODUCTS_KEY, DEFAULT_PRODUCTS));
-    selected = Object.fromEntries(Object.entries(selected).filter(([id]) => products.some(product => product.id === id)));
-    renderFilters();
-    renderProducts();
-    renderQuote();
-  });
   $("quoteDrawer").inert = true;
   renderFilters();
   renderProducts();
   renderQuote();
+  void loadPublicData();
+  window.setInterval(() => {
+    if (document.visibilityState === "visible") void loadPublicData();
+  },60000);
 }
 init();

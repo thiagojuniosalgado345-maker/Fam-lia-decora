@@ -55,3 +55,22 @@ button:disabled{cursor:not-allowed;transform:none;box-shadow:none}
   .footer-bottom{font-size:9px}
   .product-info p{font-size:12px}
 }
+
+/* Logomarca oficial enviada pela Família Decora */
+.brand-logo{
+  width:78px;height:78px;flex:0 0 78px;display:block;object-fit:contain;
+  border-radius:50%;background:#fcecf2;border:1px solid #f5d5e0;
+  box-shadow:0 4px 16px rgba(99,52,72,.07);
+}
+.brand-words{font-size:20px;letter-spacing:-.02em}
+.brand-words small{letter-spacing:.16em}
+.footer .brand-logo{width:72px;height:72px;flex-basis:72px}
+@media(max-width:680px){
+  .nav{height:78px}
+  .nav-links{top:78px}
+  .brand{gap:7px}
+  .brand-logo{width:62px;height:62px;flex-basis:62px}
+  .brand-words{font-size:16px}
+  .brand-words small{font-size:7px;letter-spacing:.1em}
+  .footer .brand-logo{width:66px;height:66px;flex-basis:66px}
+}

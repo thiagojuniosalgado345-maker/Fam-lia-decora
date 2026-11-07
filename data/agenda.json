@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "initialized": false,
+  "updatedAt": null,
+  "products": [
+    {
+      "id": "kit-pequeno",
+      "name": "Kit Pegue e Monte",
+      "category": "Kits",
+      "tag": "Kit para festa",
+      "description": "Uma seleção prática de peças para montar uma comemoração do seu jeito.",
+      "image": "https://images.unsplash.com/photo-1519225421980-888cb4c1e12c?auto=format&fit=crop&w=1000&q=85",
+      "stock": 1
+    },
+    {
+      "id": "kit-mini-table",
+      "name": "Mini table",
+      "category": "Kits",
+      "tag": "Comemoração intimista",
+      "description": "Uma composição compacta para aniversários e encontros especiais.",
+      "image": "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?auto=format&fit=crop&w=1000&q=85",
+      "stock": 1
+    },
+    {
+      "id": "paineis",
+      "name": "Painéis decorativos",
+      "category": "Painéis",
+      "tag": "Cenário",
+      "description": "Painéis para dar destaque ao tema e criar o cenário da comemoração.",
+      "image": "https://images.unsplash.com/photo-1530103862676-de8c9debad1d?auto=format&fit=crop&w=1000&q=85",
+      "stock": 1
+    },
+    {
+      "id": "cilindros",
+      "name": "Cilindros decorativos",
+      "category": "Móveis",
+      "tag": "Peças avulsas",
+      "description": "Peças de diferentes alturas para montar uma composição personalizada.",
+      "image": "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1000&q=85",
+      "stock": 1
+    },
+    {
+      "id": "mesa",
+      "name": "Mesas para decoração",
+      "category": "Móveis",
+      "tag": "Peças avulsas",
+      "description": "Móveis de apoio para destacar bolo, doces e outros elementos decorativos.",
+      "image": "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=1000&q=85",
+      "stock": 1
+    },
+    {
+      "id": "pecas",
+      "name": "Bandejas e acessórios",
+      "category": "Peças",
+      "tag": "Complemente sua festa",
+      "description": "Detalhes para completar kits ou criar uma decoração com a sua identidade.",
+      "image": "https://images.unsplash.com/photo-1523438885200-e635ba2c371e?auto=format&fit=crop&w=1000&q=85",
+      "stock": 1
+    }
+  ],
+  "availability": {
+    "from": null,
+    "through": null,
+    "days": {}
+  },
+  "privateAgenda": null
+}

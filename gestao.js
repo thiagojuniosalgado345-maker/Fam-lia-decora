@@ -787,6 +787,7 @@ function editEvent(id) {
   $("cancelEventEdit").hidden = false;
   renderCalendar();
   renderBookingsForDate();
+  renderProducts();
   renderEventItems();
   $("eventEditorCard").scrollIntoView({behavior:"smooth", block:"start"});
 }
@@ -999,6 +1000,7 @@ $("nextMonth").addEventListener("click", () => {
   selectedDate = localDateISO(currentMonth);
   renderCalendar();
   renderBookingsForDate();
+  renderProducts();
   if (!editingEventId) $("eventForm").elements.date.value = selectedDate;
   renderEventItems();
 });

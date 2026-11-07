@@ -62,3 +62,6 @@ Loja: https://thiagojuniosalgado345-maker.github.io/Fam-lia-decora/
 Gestão: https://thiagojuniosalgado345-maker.github.io/Fam-lia-decora/gestao.html
 
 Execuções: https://github.com/thiagojuniosalgado345-maker/Fam-lia-decora/actions
+### Atenção à política do GitHub Pages
+
+A política atual do GitHub informa que o Pages não pode ser usado como hospedagem gratuita para operar um negócio on-line, uma loja/e-commerce ou um site principalmente destinado a facilitar transações comerciais. Como este projeto divulga locação de peças e facilita pedidos de orçamento, pode se enquadrar nessa restrição. O repositório GitHub pode continuar guardando o código e os dados, mas não trate o GitHub Pages gratuito como hospedagem comercial de produção sem confirmar a permissão aplicável com o GitHub.

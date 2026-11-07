@@ -297,14 +297,16 @@ function writeStorage(key, value, successMessage = "") {
   return true;
 }
 async function loadGithubIntoPanel(documentData, sha) {
+  const remoteProducts = normalizeCatalog(documentData.products);
+  if (!remoteProducts || remoteProducts.length !== documentData.products.length) {
+    throw new Error("O catálogo publicado no arquivo de dados está inválido.");
+  }
+  products = remoteProducts;
   publishAvailability = Boolean(documentData.availability && documentData.availability.enabled === true);
   $("publishAvailability").checked = publishAvailability;
   githubSha = sha;
   publicDocument = documentData;
   if (!documentData.privateAgenda) {
-    const remoteProducts = normalizeCatalog(documentData.products);
-    if (!remoteProducts) throw new Error("O catálogo publicado no arquivo de dados está inválido.");
-    products = remoteProducts;
     events = [];
     unavailable = [];
     githubReady = true;
@@ -322,9 +324,6 @@ async function loadGithubIntoPanel(documentData, sha) {
     return;
   }
   const privateData = await decryptPrivateAgenda(documentData.privateAgenda);
-  const privateProducts = normalizeCatalog(privateData.products);
-  if (!privateProducts) throw new Error("O catálogo privado criptografado está inválido.");
-  products = privateProducts;
   const normalizedEvents = normalizeEvents(privateData.events);
   const normalizedUnavailable = normalizeUnavailable(privateData.unavailable);
   if (normalizedEvents.length !== privateData.events.length ||

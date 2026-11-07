@@ -3,7 +3,8 @@
    O catálogo local é apenas uma solução provisória; não sincroniza aparelhos.
 */
 const CONFIG = {
-  whatsapp: "5538991234590",
+  // Preencher somente depois de a loja confirmar o número oficial com DDI e DDD.
+  whatsapp: "",
   instagram: "https://www.instagram.com/familiadecora_oficial/"
 };
 const DEFAULT_PRODUCTS = [
@@ -184,7 +185,32 @@ function closeQuote(restoreFocus = true) {
   document.body.style.overflow = "";
   if (restoreFocus && returnFocus && typeof returnFocus.focus === "function") returnFocus.focus();
 }
-function sendQuote() {
+async function copyMessage(text) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // Tenta o método compatível com navegadores mais antigos.
+  }
+  const field = document.createElement("textarea");
+  field.value = text;
+  field.setAttribute("readonly", "");
+  field.style.position = "fixed";
+  field.style.opacity = "0";
+  document.body.appendChild(field);
+  field.select();
+  let copied = false;
+  try {
+    copied = document.execCommand("copy");
+  } catch {
+    copied = false;
+  }
+  field.remove();
+  return copied;
+}
+async function sendQuote() {
   const form = $("quoteForm");
   if (!quoteEntries().length) {
     notify("Adicione ao menos um item ao orçamento.");
@@ -204,10 +230,6 @@ function sendQuote() {
     form.elements.phone.focus();
     return;
   }
-  if (!/^\d{12,13}$/.test(CONFIG.whatsapp)) {
-    notify("O WhatsApp da loja ainda não foi configurado. Entre em contato pelo Instagram.");
-    return;
-  }
   const lines = quoteEntries().map(item => "• " + item.quantity + "x " + item.product.name);
   const message = [
     "Olá, Família Decora! Gostaria de solicitar um orçamento.",
@@ -225,6 +247,16 @@ function sendQuote() {
     "",
     "Podem confirmar disponibilidade, valores e condições?"
   ].filter(Boolean).join("\n");
+  if (!/^\d{12,13}$/.test(CONFIG.whatsapp)) {
+    const instagramWindow = window.open(CONFIG.instagram, "_blank", "noopener,noreferrer");
+    const copied = await copyMessage(message);
+    if (copied) {
+      notify("O número oficial ainda não foi confirmado. Pedido copiado: cole a mensagem na conversa do Instagram.");
+    } else {
+      notify(instagramWindow ? "O número oficial ainda não foi confirmado. Envie sua solicitação pelo Instagram." : "O navegador bloqueou a abertura do Instagram. Acesse o perfil da loja para enviar sua solicitação.");
+    }
+    return;
+  }
   const whatsappUrl = "https://wa.me/" + CONFIG.whatsapp + "?text=" + encodeURIComponent(message);
   window.open(whatsappUrl, "_blank", "noopener,noreferrer");
   notify("Mensagem preparada. Conclua o envio na conversa do WhatsApp.");

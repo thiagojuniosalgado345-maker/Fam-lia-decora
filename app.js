@@ -248,12 +248,13 @@ async function sendQuote() {
     "Podem confirmar disponibilidade, valores e condições?"
   ].filter(Boolean).join("\n");
   if (!/^\d{12,13}$/.test(CONFIG.whatsapp)) {
-    const instagramWindow = window.open(CONFIG.instagram, "_blank", "noopener,noreferrer");
+    window.open(CONFIG.instagram, "_blank", "noopener,noreferrer");
     const copied = await copyMessage(message);
     if (copied) {
-      notify("O número oficial ainda não foi confirmado. Pedido copiado: cole a mensagem na conversa do Instagram.");
+      notify("Pedido copiado. Cole a mensagem na conversa do Instagram; se ele não abrir, acesse o perfil da loja.");
     } else {
-      notify(instagramWindow ? "O número oficial ainda não foi confirmado. Envie sua solicitação pelo Instagram." : "O navegador bloqueou a abertura do Instagram. Acesse o perfil da loja para enviar sua solicitação.");
+      window.prompt("Não foi possível copiar automaticamente. Copie sua solicitação abaixo:", message);
+      notify("Acesse o Instagram da loja para enviar sua solicitação.");
     }
     return;
   }

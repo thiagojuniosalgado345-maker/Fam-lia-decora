@@ -123,3 +123,6 @@
 .publish-availability-control strong{font-size:11px;color:var(--rose-deep)}
 .publish-availability-control small{font-size:10px;color:var(--muted);line-height:1.55}
 .backup-actions{margin-top:15px}
+
+.legend-dot.blocked{background:#b98466}
+.inventory-rule-note{padding:9px 11px;border-radius:8px;background:var(--pink-50);color:var(--rose-deep)}

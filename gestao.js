@@ -155,7 +155,7 @@ function getProduct(id) {
   return products.find(product => product.id === id);
 }
 function eventUsesInventory(event) {
-  return event.status !== "cancelada" && event.status !== "concluida";
+  return event.status !== "cancelada";
 }
 function bookedQuantity(productId, date, excludeEventId) {
   return events.reduce((total, event) => {
@@ -226,7 +226,7 @@ function renderCalendar() {
       '<button type="button" class="' + classes.join(" ") + '" data-calendar-date="' + date +
       '" aria-pressed="' + String(date === selectedDate) + '" aria-label="' + formatDate(date) + (count ? ", " + count + (count === 1 ? " festa" : " festas") : ", sem festas") + '">' +
       '<span class="calendar-day-number">' + dayNumber + '</span>' +
-      (count ? '<span class="calendar-day-count">' + count + (count === 1 ? " festa" : " festas") + '</span>' : '<span class="calendar-day-empty"></span>') +
+      (count ? '<span class="calendar-day-count">' + count + '</span>' : '<span class="calendar-day-empty"></span>') +
       '</button>'
     );
   }
@@ -489,14 +489,15 @@ $("productForm").addEventListener("submit", event => {
     alert("Não é possível reduzir o estoque para " + stock + ". Existem até " + maximumUsedQuantity(id) + " unidade(s) reservada(s) ou bloqueada(s) simultaneamente.");
     return;
   }
-  const nextProducts = editingProductId
+  const wasEditing = Boolean(editingProductId);
+  const nextProducts = wasEditing
     ? products.map(item => item.id === editingProductId ? product : item)
     : [...products, product];
   if (!writeStorage(PRODUCT_KEY, nextProducts)) return;
   products = nextProducts;
   resetProductForm();
   renderAll();
-  alert(editingProductId ? "Produto atualizado." : "Produto cadastrado.");
+  alert(wasEditing ? "Produto atualizado." : "Produto cadastrado.");
 });
 $("cancelEdit").addEventListener("click", resetProductForm);
 $("restoreProducts").addEventListener("click", () => {
@@ -573,7 +574,7 @@ $("eventForm").addEventListener("submit", event => {
       return;
     }
     const status = String(data.get("status"));
-    if (status !== "cancelada" && status !== "concluida") {
+    if (status !== "cancelada") {
       const available = availableQuantity(item.productId, date, editingEventId);
       if (item.quantity > available) {
         alert("Não há unidades suficientes de " + product.name + " para " + formatDate(date) + ". Disponíveis: " + available + ". Reduza a quantidade, escolha outra data ou ajuste o estoque/bloqueio.");

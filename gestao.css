@@ -4,7 +4,7 @@
 .row-actions button+button{margin-left:5px}
 .management-table td{vertical-align:middle}
 .management-form input:focus-visible,.management-form select:focus-visible,.block-form input:focus-visible{outline:3px solid #c68ba1;outline-offset:2px}
-@media(max-width:650px){.management-table{min-width:520px}}
+@media(max-width:650px){.management-table{min-width:780px}}
 
 
 /* Agenda de festas e disponibilidade individual do acervo */

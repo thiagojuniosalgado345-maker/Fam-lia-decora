@@ -89,6 +89,7 @@ const adminRequiredIds = [
   "calendarGrid",
   "calendarTitle",
   "bookingsForDate",
+  "blockedForDate",
   "eventForm",
   "eventItems",
   "unavailableForm",
@@ -102,7 +103,7 @@ if (missingAdminIds.length) {
 }
 
 const managementScript = readFileSync("gestao.js", "utf8");
-for (const requiredFeature of ["EVENT_KEY", "UNAVAILABLE_KEY", "availableQuantity", "bookedQuantity", "blockedQuantity", "calendar-day-count"]) {
+for (const requiredFeature of ["EVENT_KEY", "UNAVAILABLE_KEY", "availableQuantity", "bookedQuantity", "blockedQuantity", "renderBlocksForDate", "calendar-day-count"]) {
   if (!managementScript.includes(requiredFeature)) {
     throw new Error("Funcionalidade da agenda/estoque ausente: " + requiredFeature);
   }

@@ -217,16 +217,21 @@ function renderCalendar() {
     const date = localDateISO(new Date(year, month, dayNumber));
     const isCurrentMonth = dayNumber >= 1 && dayNumber <= daysInMonth;
     const count = events.filter(event => event.date === date && event.status !== "cancelada").length;
+    const blockCount = unavailable.filter(item => item.startDate <= date && item.endDate >= date).length;
     const classes = ["calendar-day"];
     if (!isCurrentMonth) classes.push("outside-month");
     if (date === selectedDate) classes.push("selected");
     if (count) classes.push("has-events");
+    if (blockCount) classes.push("has-blocks");
     if (date === localDateISO()) classes.push("today");
     cells.push(
       '<button type="button" class="' + classes.join(" ") + '" data-calendar-date="' + date +
-      '" aria-pressed="' + String(date === selectedDate) + '" aria-label="' + formatDate(date) + (count ? ", " + count + (count === 1 ? " festa" : " festas") : ", sem festas") + '">' +
+      '" aria-pressed="' + String(date === selectedDate) + '" aria-label="' + formatDate(date) +
+      (count ? ", " + count + (count === 1 ? " festa" : " festas") : ", sem festas") +
+      (blockCount ? ", " + blockCount + (blockCount === 1 ? " bloqueio de peça" : " bloqueios de peças") : "") + '">' +
       '<span class="calendar-day-number">' + dayNumber + '</span>' +
       (count ? '<span class="calendar-day-count">' + count + '</span>' : '<span class="calendar-day-empty"></span>') +
+      (blockCount ? '<span class="calendar-day-blocks">▣ ' + blockCount + '</span>' : '') +
       '</button>'
     );
   }
@@ -248,33 +253,54 @@ function renderBookingsForDate() {
   const list = events.filter(event => event.date === selectedDate).sort((a,b) => a.client.localeCompare(b.client, "pt-BR"));
   if (!list.length) {
     $("bookingsForDate").innerHTML = '<div class="empty-bookings">Nenhuma festa cadastrada para este dia. Você pode agendar mais de uma festa na mesma data.</div>';
-    return;
+  } else {
+    $("bookingsForDate").innerHTML = list.map(event => {
+      const itemText = event.items.map(item => {
+        const product = getProduct(item.productId);
+        return escapeHtml(product ? product.name : "Peça removida") + " × " + item.quantity;
+      }).join(" · ");
+      return '<article class="booking-card">' +
+        '<div class="booking-card-main"><div class="booking-card-title"><strong>' + escapeHtml(event.client) +
+        '</strong><span class="status-pill status-' + event.status + '">' + statusLabel(event.status) + '</span></div>' +
+        '<p>' + escapeHtml(event.eventType) + (event.neighborhood ? " · " + escapeHtml(event.neighborhood) : "") + '</p>' +
+        '<small>' + (itemText || "Nenhuma peça vinculada") + '</small>' +
+        (event.notes ? '<small class="booking-notes">' + escapeHtml(event.notes) + '</small>' : '') +
+        '</div><div class="booking-actions"><button type="button" data-edit-event="' + escapeHtml(event.id) + '">Editar</button>' +
+        '<button type="button" class="danger-action" data-delete-event="' + escapeHtml(event.id) + '">Excluir</button></div></article>';
+    }).join("");
+    $("bookingsForDate").querySelectorAll("[data-edit-event]").forEach(button => {
+      button.addEventListener("click", () => editEvent(button.dataset.editEvent));
+    });
+    $("bookingsForDate").querySelectorAll("[data-delete-event]").forEach(button => {
+      button.addEventListener("click", () => {
+        if (!confirm("Excluir esta festa da agenda?")) return;
+        events = events.filter(event => event.id !== button.dataset.deleteEvent);
+        if (saveEvents()) {
+          if (editingEventId === button.dataset.deleteEvent) resetEventForm();
+          renderAll();
+        }
+      });
+    });
   }
-  $("bookingsForDate").innerHTML = list.map(event => {
-    const itemText = event.items.map(item => {
-      const product = getProduct(item.productId);
-      return escapeHtml(product ? product.name : "Peça removida") + " × " + item.quantity;
-    }).join(" · ");
-    return '<article class="booking-card">' +
-      '<div class="booking-card-main"><div class="booking-card-title"><strong>' + escapeHtml(event.client) +
-      '</strong><span class="status-pill status-' + event.status + '">' + statusLabel(event.status) + '</span></div>' +
-      '<p>' + escapeHtml(event.eventType) + (event.neighborhood ? " · " + escapeHtml(event.neighborhood) : "") + '</p>' +
-      '<small>' + (itemText || "Nenhuma peça vinculada") + '</small>' +
-      (event.notes ? '<small class="booking-notes">' + escapeHtml(event.notes) + '</small>' : '') +
-      '</div><div class="booking-actions"><button type="button" data-edit-event="' + escapeHtml(event.id) + '">Editar</button>' +
-      '<button type="button" class="danger-action" data-delete-event="' + escapeHtml(event.id) + '">Excluir</button></div></article>';
-  }).join("");
-  $("bookingsForDate").querySelectorAll("[data-edit-event]").forEach(button => {
-    button.addEventListener("click", () => editEvent(button.dataset.editEvent));
-  });
-  $("bookingsForDate").querySelectorAll("[data-delete-event]").forEach(button => {
+  renderBlocksForDate();
+}
+function renderBlocksForDate() {
+  const list = unavailable.filter(item => item.startDate <= selectedDate && item.endDate >= selectedDate);
+  $("blockedForDate").innerHTML = list.length ? list.map(item => {
+    const product = getProduct(item.productId);
+    return '<article class="unavailable-card"><div><strong>' + escapeHtml(product ? product.name : "Peça removida") +
+      ' · ' + item.quantity + ' un.</strong><small>' + escapeHtml(item.reason) + ' · ' +
+      formatDate(item.startDate) + ' até ' + formatDate(item.endDate) + '</small></div>' +
+      '<button type="button" class="danger-action" data-release-block="' + escapeHtml(item.id) + '">Liberar</button></article>';
+  }).join("") : '<div class="empty-bookings">Nenhuma peça bloqueada manualmente nesta data.</div>';
+  attachReleaseButtons($("blockedForDate"));
+}
+function attachReleaseButtons(container) {
+  container.querySelectorAll("[data-release-block]").forEach(button => {
     button.addEventListener("click", () => {
-      if (!confirm("Excluir esta festa da agenda?")) return;
-      events = events.filter(event => event.id !== button.dataset.deleteEvent);
-      if (saveEvents()) {
-        if (editingEventId === button.dataset.deleteEvent) resetEventForm();
-        renderAll();
-      }
+      if (!confirm("Liberar esta peça para novos agendamentos?")) return;
+      unavailable = unavailable.filter(item => item.id !== button.dataset.releaseBlock);
+      if (saveUnavailable()) renderAll();
     });
   });
 }
@@ -368,13 +394,7 @@ function renderUnavailable() {
       ' · ' + item.quantity + ' un.</strong><small>' + formatDate(item.startDate) + ' até ' + formatDate(item.endDate) +
       ' · ' + escapeHtml(item.reason) + '</small></div><button type="button" class="danger-action" data-release-block="' + escapeHtml(item.id) + '">Liberar</button></article>';
   }).join("") || '<div class="empty-bookings">Nenhuma peça marcada como indisponível.</div>';
-  $("unavailableList").querySelectorAll("[data-release-block]").forEach(button => {
-    button.addEventListener("click", () => {
-      if (!confirm("Liberar esta peça para novos agendamentos no período informado?")) return;
-      unavailable = unavailable.filter(item => item.id !== button.dataset.releaseBlock);
-      if (saveUnavailable()) renderAll();
-    });
-  });
+  attachReleaseButtons($("unavailableList"));
 }
 function editProduct(id) {
   const product = getProduct(id);

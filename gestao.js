@@ -276,6 +276,7 @@ async function commitGithubSnapshot(snapshotValue, successMessage = "Alteraçõe
     $("refreshGithub").disabled = !githubReady;
     $("disconnectGithub").disabled = !githubReady;
     $("connectGithub").disabled = false;
+    $("publishAvailability").disabled = !githubReady;
   }
 }
 function writeStorage(key, value, successMessage = "") {
@@ -514,9 +515,10 @@ function availableQuantity(productId, date, excludeEventId) {
 }
 function maximumUsedQuantity(productId) {
   const dates = new Set();
-  events.filter(event => eventUsesInventory(event) && event.items.some(item => item.productId === productId)).forEach(event => dates.add(event.date));
-  unavailable.filter(item => item.productId === productId).forEach(item => {
-    let date = item.startDate;
+  const today = localDateISO();
+  events.filter(event => event.date >= today && eventUsesInventory(event) && event.items.some(item => item.productId === productId)).forEach(event => dates.add(event.date));
+  unavailable.filter(item => item.productId === productId && item.endDate >= today).forEach(item => {
+    let date = item.startDate < today ? today : item.startDate;
     let count = 0;
     while (date <= item.endDate && count < 740) {
       dates.add(date);

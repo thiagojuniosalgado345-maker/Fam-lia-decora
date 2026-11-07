@@ -233,6 +233,7 @@ function init() {
   $("year").textContent = new Date().getFullYear();
   $("quoteForm").elements.date.min = localToday();
   $("openQuote").addEventListener("click", openQuote);
+  $("faqOpenQuote").addEventListener("click", openQuote);
   $("closeQuote").addEventListener("click", () => closeQuote());
   $("overlay").addEventListener("click", () => closeQuote());
   $("sendQuote").addEventListener("click", sendQuote);

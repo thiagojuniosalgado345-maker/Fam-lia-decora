@@ -95,7 +95,7 @@ const adminRequiredIds = [
   "unavailableList",
   "exportCatalog"
 ];
-const adminIds = new Set([...management.matchAll(/\\bid=["']([^"']+)["']/g)].map(match => match[1]));
+const adminIds = new Set([...management.matchAll(/\bid=["']([^"']+)["']/g)].map(match => match[1]));
 const missingAdminIds = adminRequiredIds.filter(id => !adminIds.has(id));
 if (missingAdminIds.length) {
   throw new Error("Painel de gestão sem elementos da agenda/estoque: " + missingAdminIds.join(", "));

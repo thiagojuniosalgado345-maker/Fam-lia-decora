@@ -181,6 +181,7 @@ function addItem(id) {
   }
   selected[id] = Math.min(99, (selected[id] || 0) + 1);
   renderQuote();
+  renderProducts();
   openQuote();
   notify("Item adicionado ao seu orçamento.");
 }

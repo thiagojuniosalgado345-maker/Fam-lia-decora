@@ -1035,11 +1035,12 @@ $("nextMonth").addEventListener("click", () => {
 });
 $("unavailableForm").addEventListener("submit", async event => {
   event.preventDefault();
+  const form = event.currentTarget;
   if (!products.length) {
     alert("Cadastre primeiro as peças e suas quantidades.");
     return;
   }
-  const data = new FormData(event.currentTarget);
+  const data = new FormData(form);
   const productId = String(data.get("productId") || "");
   const quantity = Number(data.get("quantity"));
   const startDate = String(data.get("startDate") || "");
@@ -1076,7 +1077,7 @@ $("unavailableForm").addEventListener("submit", async event => {
     reason:reason.slice(0,120)
   }];
   if (await saveUnavailable(nextUnavailable,"Bloqueio salvo e estoque atualizado.")) {
-    event.currentTarget.reset();
+    form.reset();
     $("unavailableForm").elements.quantity.value = "1";
     $("unavailableForm").elements.startDate.value = localDateISO();
     $("unavailableForm").elements.endDate.value = localDateISO();

@@ -155,4 +155,34 @@ if (dataFile.privateAgenda && (!dataFile.privateAgenda.ciphertext ||
   throw new Error("O conteúdo privado da agenda não está criptografado no formato esperado.");
 }
 
-console.log("Validação final concluída: loja, privacidade, criptografia, GitHub e disponibilidade pública.");
+const productById = new Map();
+for (const product of dataFile.products) {
+  if (!product || typeof product !== "object" ||
+      !/^[a-zA-Z0-9_-]{1,120}$/.test(String(product.id || "")) ||
+      productById.has(product.id) ||
+      !String(product.name || "").trim() ||
+      !String(product.category || "").trim() ||
+      !String(product.description || "").trim() ||
+      !Number.isInteger(product.stock) || product.stock < 1 || product.stock > 100 ||
+      !/^https:\/\//i.test(String(product.image || ""))) {
+    throw new Error("O catálogo público contém produto inválido, ID duplicado ou estoque/imagem fora do padrão.");
+  }
+  productById.set(product.id, product);
+}
+
+for (const [date, quantities] of Object.entries(dataFile.availability.days)) {
+  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(date) || !quantities || typeof quantities !== "object" || Array.isArray(quantities)) {
+    throw new Error("A disponibilidade pública contém uma data ou estrutura inválida.");
+  }
+  for (const [productId, freeQuantity] of Object.entries(quantities)) {
+    const product = productById.get(productId);
+    if (!product || !Number.isInteger(freeQuantity) || freeQuantity < 0 || freeQuantity > product.stock) {
+      throw new Error("A disponibilidade pública contém quantidade inválida ou referência a produto inexistente.");
+    }
+  }
+}
+if (dataFile.initialized === false && dataFile.availability.enabled === true) {
+  throw new Error("A disponibilidade pública não pode ser ativada antes da inicialização da agenda.");
+}
+
+console.log("Validação final concluída: loja, privacidade, criptografia, GitHub, catálogo e disponibilidade pública.");

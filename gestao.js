@@ -232,8 +232,7 @@ async function commitGithubSnapshot(snapshotValue, successMessage = "Alteraçõe
   try {
     const latest = await fetchGithubDocument();
     if (latest.sha !== githubSha) {
-      githubReady = false;
-      throw new Error("O arquivo foi alterado no GitHub por outro acesso. Para evitar apagar dados, atualize a agenda do GitHub antes de tentar novamente.");
+      throw new Error("O arquivo foi alterado no GitHub por outro acesso. Para evitar apagar dados, use Atualizar do GitHub; o painel não sobrescreveu a versão mais recente.");
     }
     const nextDocument = {
       schemaVersion:1,
@@ -259,7 +258,6 @@ async function commitGithubSnapshot(snapshotValue, successMessage = "Alteraçõe
     });
     const result = await response.json().catch(() => ({}));
     if (!response.ok || !result.content || !result.content.sha) {
-      if (response.status === 409 || response.status === 422) githubReady = false;
       throw new Error(response.status === 409 || response.status === 422
         ? "O GitHub identificou uma gravação concorrente. Atualize os dados antes de salvar novamente."
         : "O GitHub não aceitou a gravação (HTTP " + response.status + "). Confira a permissão Contents: Read and write do token.");

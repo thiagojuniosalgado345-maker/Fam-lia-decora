@@ -26,7 +26,7 @@
       <nav class="nav-links" id="mainNav">
         <a href="#inicio">Início</a><a href="#catalogo">Catálogo</a><a href="#passos">Como funciona</a><a href="#sobre">A Família Decora</a>
       </nav>
-      <button class="quote-button" id="openQuote" type="button"><span aria-hidden="true">♡</span> Meu orçamento <b id="quoteCount">0</b></button>
+      <button class="quote-button" id="openQuote" type="button" aria-controls="quoteDrawer" aria-expanded="false"><span aria-hidden="true">♡</span> Meu orçamento <b id="quoteCount">0</b></button>
     </div>
   </header>
 
@@ -103,13 +103,14 @@
     <div class="container footer-main">
       <a class="brand" href="#inicio"><span class="brand-symbol">✿</span><span class="brand-words">família decora<small>celebre do seu jeito</small></span></a>
       <p>Kits pegue e monte e aluguel de itens para eventos em Montes Claros. Consulte a equipe sobre condições, retirada e disponibilidade.</p>
-      <div class="footer-links"><a href="#catalogo">Catálogo</a><a href="#passos">Como funciona</a><a href="https://www.instagram.com/familiadecora_oficial/" target="_blank" rel="noopener noreferrer">Instagram ↗</a><a href="gestao.html">Área da equipe</a></div>
+      <div class="footer-links"><a href="#catalogo">Catálogo</a><a href="#passos">Como funciona</a><a href="https://www.instagram.com/familiadecora_oficial/" target="_blank" rel="noopener noreferrer">Instagram ↗</a></div>
     </div>
     <div class="container footer-bottom"><span>© <span id="year"></span> Família Decora. Todos os direitos reservados.</span><span>Feito com carinho <b>♡</b></span></div>
   </footer>
 
+  <a class="skip-link" href="#catalogo">Pular para o catálogo</a>
   <div class="overlay" id="overlay"></div>
-  <aside class="quote-drawer" id="quoteDrawer" aria-label="Meu orçamento" aria-hidden="true">
+  <aside class="quote-drawer" id="quoteDrawer" role="dialog" aria-modal="true" aria-label="Meu orçamento" aria-hidden="true" inert>
     <div class="drawer-header"><div><small>FAMÍLIA DECORA</small><h2>Meu orçamento</h2></div><button class="icon-button" id="closeQuote" type="button" aria-label="Fechar orçamento">×</button></div>
     <div class="drawer-body">
       <div id="quoteItems"></div>

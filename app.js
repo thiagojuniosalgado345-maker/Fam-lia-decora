@@ -14,28 +14,10 @@ const DEFAULT_PRODUCTS = [
   {id:"mesa",name:"Mesas para decoração",category:"Móveis",tag:"Peças avulsas",description:"Móveis de apoio para destacar bolo, doces e outros elementos decorativos.",image:"https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=1000&q=85"},
   {id:"pecas",name:"Bandejas e acessórios",category:"Peças",tag:"Complemente sua festa",description:"Detalhes para completar kits ou criar uma decoração com a sua identidade.",image:"https://images.unsplash.com/photo-1523438885200-e635ba2c371e?auto=format&fit=crop&w=1000&q=85"}
 ];
-const PRODUCTS_KEY = "familia-decora-products-v2";
 const PUBLIC_DATA_URL = "data/agenda.json";
 let publicAvailability = null;
-let publicDataUpdatedAt = null;
 const $ = id => document.getElementById(id);
 const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const safeRead = (key, fallback) => {
-  try {
-    const value = JSON.parse(localStorage.getItem(key));
-    return value ?? fallback;
-  } catch {
-    return fallback;
-  }
-};
-const safeWrite = (key, value) => {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-    return true;
-  } catch {
-    return false;
-  }
-};
 function safeImageUrl(value) {
   try {
     const url = new URL(String(value || ""));
@@ -107,7 +89,6 @@ async function loadPublicData() {
     publicAvailability = documentData.availability && typeof documentData.availability === "object"
       ? documentData.availability
       : null;
-    publicDataUpdatedAt = documentData.updatedAt || null;
     selected = Object.fromEntries(Object.entries(selected).filter(([id]) => products.some(product => product.id === id)));
     if (!categories().includes(category)) category = "Todos";
     renderFilters();

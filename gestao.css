@@ -92,7 +92,7 @@
   .subsection-heading{align-items:flex-start;flex-direction:column}
 }
 
-.calendar-day-blocks{font-size:9px;color:#956b54;font-weight:700;line-height:1.1}
+.calendar-day-blocks{font-size:9px;color:#80533f;font-weight:700;line-height:1.1}
 .calendar-day.has-blocks:not(.selected){background:#fffaf6}
 .day-resource-blocks{border-top:1px solid var(--line);padding-top:15px;margin-top:18px}
 .day-resource-blocks h4{font:600 15px var(--serif);color:var(--rose-deep);margin:0 0 10px}

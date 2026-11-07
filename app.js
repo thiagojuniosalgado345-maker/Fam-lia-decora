@@ -1,9 +1,9 @@
-/* Família Decora — loja demonstrativa.
-   Não salva dados pessoais dos clientes no navegador.
-   Catálogo pode ser alterado localmente pelo painel da equipe; para sincronizar vários aparelhos, conecte um backend.
+/* Família Decora — catálogo público e solicitação de orçamento.
+   Dados do evento são enviados ao WhatsApp e não são salvos pelo site.
+   O catálogo local é apenas uma solução provisória; não sincroniza aparelhos.
 */
 const CONFIG = {
-  whatsapp: "5538991234590", // número divulgado em diretório público antigo; confirmar com a loja antes de divulgar
+  whatsapp: "5538991234590",
   instagram: "https://www.instagram.com/familiadecora_oficial/"
 };
 const DEFAULT_PRODUCTS = [
@@ -14,89 +14,273 @@ const DEFAULT_PRODUCTS = [
   {id:"mesa",name:"Mesas para decoração",category:"Móveis",tag:"Peças avulsas",description:"Móveis de apoio para destacar bolo, doces e outros elementos decorativos.",image:"https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=1000&q=85"},
   {id:"pecas",name:"Bandejas e acessórios",category:"Peças",tag:"Complemente sua festa",description:"Detalhes para completar kits ou criar uma decoração com a sua identidade.",image:"https://images.unsplash.com/photo-1523438885200-e635ba2c371e?auto=format&fit=crop&w=1000&q=85"}
 ];
-const PRODUCTS_KEY="familia-decora-products-v2";
-const $=id=>document.getElementById(id);
-const safeRead=(key,fallback)=>{try{const parsed=JSON.parse(localStorage.getItem(key));return parsed??fallback}catch{return fallback}};
-const safeWrite=(key,value)=>{try{localStorage.setItem(key,JSON.stringify(value));return true}catch{return false}};
-const escapeHtml=value=>String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-let products=safeRead(PRODUCTS_KEY,DEFAULT_PRODUCTS);
-if(!Array.isArray(products)||!products.length)products=DEFAULT_PRODUCTS;
-let selected={};
-let category="Todos";
-let query="";
-function localToday(){const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-")}
-function notify(message){const toast=$("toast");toast.textContent=message;toast.classList.add("show");clearTimeout(notify.timer);notify.timer=setTimeout(()=>toast.classList.remove("show"),2600)}
-function persistProducts(){if(!safeWrite(PRODUCTS_KEY,products))notify("Não foi possível salvar: armazenamento indisponível neste navegador.");}
-function categories(){return ["Todos",...new Set(products.map(p=>p.category).filter(Boolean))]}
-function renderFilters(){
-  $("filters").innerHTML=categories().map(c=>`<button type="button" class="filter-chip ${category===c?"active":""}" data-filter="${escapeHtml(c)}" aria-pressed="${category===c}">${escapeHtml(c)}</button>`).join("");
-  $("filters").querySelectorAll("[data-filter]").forEach(b=>b.addEventListener("click",()=>{category=b.dataset.filter;renderFilters();renderProducts()}));
+const PRODUCTS_KEY = "familia-decora-products-v2";
+const $ = id => document.getElementById(id);
+const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const safeRead = (key, fallback) => {
+  try {
+    const value = JSON.parse(localStorage.getItem(key));
+    return value ?? fallback;
+  } catch {
+    return fallback;
+  }
+};
+const safeWrite = (key, value) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+    return true;
+  } catch {
+    return false;
+  }
+};
+function safeImageUrl(value) {
+  try {
+    const url = new URL(String(value || ""));
+    return url.protocol === "https:" ? url.href : "";
+  } catch {
+    return "";
+  }
 }
-function renderProducts(){
-  const filtered=products.filter(p=>(category==="Todos"||p.category===category)&&[p.name,p.category,p.description,p.tag].join(" ").toLocaleLowerCase("pt-BR").includes(query));
-  $("productGrid").innerHTML=filtered.length?filtered.map(p=>`
-    <article class="product-card">
-      <div class="product-photo"><img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1519225421980-888cb4c1e12c?auto=format&fit=crop&w=900&q=80'"><span class="photo-label">${escapeHtml(p.tag||p.category)}</span></div>
-      <div class="product-info"><div class="product-category">${escapeHtml(p.category)}</div><h3>${escapeHtml(p.name)}</h3><p>${escapeHtml(p.description)}</p>
-        <div class="product-bottom"><span class="price-hint">Consulte disponibilidade</span><button type="button" class="add-button" data-add="${escapeHtml(p.id)}">Adicionar ao orçamento +</button></div>
-      </div>
-    </article>`).join(""):`<div class="no-results">Não encontramos itens com essa busca. Tente outro termo ou categoria.</div>`;
-  $("productGrid").querySelectorAll("[data-add]").forEach(b=>b.addEventListener("click",()=>addItem(b.dataset.add)));
+function normalizeProducts(list) {
+  if (!Array.isArray(list)) return DEFAULT_PRODUCTS.slice();
+  const ids = new Set();
+  return list.filter(product => {
+    if (!product || typeof product !== "object") return false;
+    const id = String(product.id || "").trim();
+    const name = String(product.name || "").trim();
+    const category = String(product.category || "").trim();
+    const description = String(product.description || "").trim();
+    if (!/^[a-zA-Z0-9_-]{1,100}$/.test(id) || ids.has(id) || !name || !category || !description) return false;
+    ids.add(id);
+    return true;
+  }).map(product => ({
+    id: String(product.id),
+    name: String(product.name).trim().slice(0, 80),
+    category: String(product.category).trim().slice(0, 40),
+    tag: String(product.tag || product.category).trim().slice(0, 35),
+    description: String(product.description).trim().slice(0, 180),
+    image: safeImageUrl(product.image) || DEFAULT_PRODUCTS[0].image
+  }));
 }
-function addItem(id){if(!products.some(p=>p.id===id))return;selected[id]=(selected[id]||0)+1;renderQuote();openQuote();notify("Item adicionado ao seu orçamento.");}
-function quoteEntries(){return Object.entries(selected).map(([id,qty])=>({product:products.find(p=>p.id===id),qty})).filter(x=>x.product&&x.qty>0)}
-function renderQuote(){
-  const entries=quoteEntries();const total=entries.reduce((n,x)=>n+x.qty,0);
-  $("quoteCount").textContent=total;
-  $("quoteItems").innerHTML=entries.length?`<div class="quote-lines">${entries.map(({product:p,qty})=>`
-    <div class="quote-line"><img src="${escapeHtml(p.image)}" alt=""><div><strong>${escapeHtml(p.name)}</strong><small>${escapeHtml(p.category)}</small><div class="quantity"><button type="button" data-qty="${escapeHtml(p.id)}" data-step="-1" aria-label="Diminuir quantidade">−</button><span>${qty}</span><button type="button" data-qty="${escapeHtml(p.id)}" data-step="1" aria-label="Aumentar quantidade">+</button></div></div><button type="button" class="remove-button" data-remove="${escapeHtml(p.id)}" aria-label="Remover item">×</button></div>`).join("")}</div>`:`<div class="empty-quote">Seu orçamento ainda está vazio.<br>Escolha as peças que deseja consultar no catálogo. ♡</div>`;
-  $("quoteItems").querySelectorAll("[data-qty]").forEach(b=>b.addEventListener("click",()=>{const id=b.dataset.qty;selected[id]=Math.max(0,(selected[id]||0)+Number(b.dataset.step));if(!selected[id])delete selected[id];renderQuote()}));
-  $("quoteItems").querySelectorAll("[data-remove]").forEach(b=>b.addEventListener("click",()=>{delete selected[b.dataset.remove];renderQuote()}));
-  $("sendQuote").disabled=!entries.length;$("sendQuote").style.opacity=entries.length?"1":".5";
+let products = normalizeProducts(safeRead(PRODUCTS_KEY, DEFAULT_PRODUCTS));
+let selected = Object.create(null);
+let category = "Todos";
+let query = "";
+let returnFocus = null;
+
+function localToday() {
+  const date = new Date();
+  return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0")].join("-");
 }
-function openQuote(){ $("overlay").classList.add("open");$("quoteDrawer").classList.add("open");$("quoteDrawer").setAttribute("aria-hidden","false");document.body.style.overflow="hidden";$("closeQuote").focus()}
-function closeQuote(){ $("overlay").classList.remove("open");$("quoteDrawer").classList.remove("open");$("quoteDrawer").setAttribute("aria-hidden","true");document.body.style.overflow=""}
-function sendQuote(){
-  const form=$("quoteForm");if(!quoteEntries().length){notify("Adicione ao menos um item ao orçamento.");return}
-  if(!form.reportValidity())return;
-  const data=new FormData(form);const date=data.get("date");
-  if(date<localToday()){notify("Escolha uma data futura para o evento.");return}
-  const phoneDigits=String(data.get("phone")||"").replace(/\D/g,"");
-  if(phoneDigits.length<10||phoneDigits.length>13){notify("Confira o número de WhatsApp informado.");form.elements.phone.focus();return}
-  const items=quoteEntries().map(x=>`• ${x.qty}x ${x.product.name}`);
-  const msg=[
+function notify(message) {
+  const toast = $("toast");
+  toast.textContent = message;
+  toast.classList.add("show");
+  clearTimeout(notify.timer);
+  notify.timer = setTimeout(() => toast.classList.remove("show"), 3000);
+}
+function categories() {
+  return ["Todos", ...new Set(products.map(product => product.category).filter(Boolean))];
+}
+function renderFilters() {
+  if (!categories().includes(category)) category = "Todos";
+  $("filters").innerHTML = categories().map(item =>
+    '<button type="button" class="filter-chip ' + (category === item ? "active" : "") +
+    '" data-filter="' + escapeHtml(item) + '" aria-pressed="' + (category === item) + '">' +
+    escapeHtml(item) + '</button>'
+  ).join("");
+  $("filters").querySelectorAll("[data-filter]").forEach(button => {
+    button.addEventListener("click", () => {
+      category = button.dataset.filter;
+      renderFilters();
+      renderProducts();
+    });
+  });
+}
+function renderProducts() {
+  const filtered = products.filter(product =>
+    (category === "Todos" || product.category === category) &&
+    [product.name, product.category, product.description, product.tag].join(" ").toLocaleLowerCase("pt-BR").includes(query)
+  );
+  $("productGrid").innerHTML = filtered.length ? filtered.map(product =>
+    '<article class="product-card">' +
+      '<div class="product-photo"><img src="' + escapeHtml(product.image) + '" alt="' + escapeHtml(product.name) +
+      '" loading="lazy"><span class="photo-label">' + escapeHtml(product.tag || product.category) + '</span></div>' +
+      '<div class="product-info"><div class="product-category">' + escapeHtml(product.category) + '</div>' +
+      '<h3>' + escapeHtml(product.name) + '</h3><p>' + escapeHtml(product.description) + '</p>' +
+      '<div class="product-bottom"><span class="price-hint">Consulte disponibilidade</span>' +
+      '<button type="button" class="add-button" data-add="' + escapeHtml(product.id) + '">Adicionar ao orçamento +</button></div></div>' +
+    '</article>'
+  ).join("") : '<div class="no-results">Não encontramos itens com essa busca. Tente outro termo ou categoria.</div>';
+  $("productGrid").querySelectorAll("[data-add]").forEach(button => {
+    button.addEventListener("click", () => addItem(button.dataset.add));
+  });
+}
+function addItem(id) {
+  if (!products.some(product => product.id === id)) return;
+  selected[id] = Math.min(99, (selected[id] || 0) + 1);
+  renderQuote();
+  openQuote();
+  notify("Item adicionado ao seu orçamento.");
+}
+function quoteEntries() {
+  return Object.entries(selected).map(([id, quantity]) => ({
+    product: products.find(product => product.id === id),
+    quantity: Number(quantity)
+  })).filter(item => item.product && Number.isFinite(item.quantity) && item.quantity > 0);
+}
+function renderQuote() {
+  const entries = quoteEntries();
+  const total = entries.reduce((sum, item) => sum + item.quantity, 0);
+  $("quoteCount").textContent = total;
+  $("quoteItems").innerHTML = entries.length ? '<div class="quote-lines">' + entries.map(({product, quantity}) =>
+    '<div class="quote-line"><img src="' + escapeHtml(product.image) + '" alt=""><div><strong>' +
+    escapeHtml(product.name) + '</strong><small>' + escapeHtml(product.category) + '</small>' +
+    '<div class="quantity"><button type="button" data-qty="' + escapeHtml(product.id) +
+    '" data-step="-1" aria-label="Diminuir quantidade">−</button><span>' + quantity +
+    '</span><button type="button" data-qty="' + escapeHtml(product.id) +
+    '" data-step="1" aria-label="Aumentar quantidade">+</button></div></div>' +
+    '<button type="button" class="remove-button" data-remove="' + escapeHtml(product.id) +
+    '" aria-label="Remover item">×</button></div>'
+  ).join("") + '</div>' : '<div class="empty-quote">Seu orçamento ainda está vazio.<br>Escolha as peças que deseja consultar no catálogo. ♡</div>';
+  $("quoteItems").querySelectorAll("[data-qty]").forEach(button => {
+    button.addEventListener("click", () => {
+      const id = button.dataset.qty;
+      selected[id] = Math.max(0, (selected[id] || 0) + Number(button.dataset.step));
+      if (!selected[id]) delete selected[id];
+      renderQuote();
+    });
+  });
+  $("quoteItems").querySelectorAll("[data-remove]").forEach(button => {
+    button.addEventListener("click", () => {
+      delete selected[button.dataset.remove];
+      renderQuote();
+    });
+  });
+  $("sendQuote").disabled = !entries.length;
+  $("sendQuote").setAttribute("aria-disabled", String(!entries.length));
+  $("openQuote").setAttribute("aria-expanded", String($("quoteDrawer").classList.contains("open")));
+}
+function openQuote() {
+  const drawer = $("quoteDrawer");
+  if (drawer.classList.contains("open")) return;
+  returnFocus = document.activeElement;
+  drawer.inert = false;
+  $("overlay").classList.add("open");
+  drawer.classList.add("open");
+  drawer.setAttribute("aria-hidden", "false");
+  $("openQuote").setAttribute("aria-expanded", "true");
+  document.body.style.overflow = "hidden";
+  $("closeQuote").focus();
+}
+function closeQuote(restoreFocus = true) {
+  const drawer = $("quoteDrawer");
+  if (!drawer.classList.contains("open")) return;
+  $("overlay").classList.remove("open");
+  drawer.classList.remove("open");
+  drawer.setAttribute("aria-hidden", "true");
+  drawer.inert = true;
+  $("openQuote").setAttribute("aria-expanded", "false");
+  document.body.style.overflow = "";
+  if (restoreFocus && returnFocus && typeof returnFocus.focus === "function") returnFocus.focus();
+}
+function sendQuote() {
+  const form = $("quoteForm");
+  if (!quoteEntries().length) {
+    notify("Adicione ao menos um item ao orçamento.");
+    return;
+  }
+  if (!form.reportValidity()) return;
+  const data = new FormData(form);
+  const date = String(data.get("date") || "");
+  if (date < localToday()) {
+    notify("Escolha hoje ou uma data futura para o evento.");
+    return;
+  }
+  const phone = String(data.get("phone") || "");
+  const phoneDigits = phone.replace(/\D/g, "");
+  if (phoneDigits.length < 10 || phoneDigits.length > 13) {
+    notify("Confira o número de WhatsApp informado.");
+    form.elements.phone.focus();
+    return;
+  }
+  if (!/^\d{12,13}$/.test(CONFIG.whatsapp)) {
+    notify("O WhatsApp da loja ainda não foi configurado. Entre em contato pelo Instagram.");
+    return;
+  }
+  const lines = quoteEntries().map(item => "• " + item.quantity + "x " + item.product.name);
+  const message = [
     "Olá, Família Decora! Gostaria de solicitar um orçamento.",
     "",
-    `Nome: ${data.get("name")}`,
-    `WhatsApp para retorno: ${data.get("phone")}`,
-    `Data do evento: ${new Date(date+"T12:00:00").toLocaleDateString("pt-BR")}`,
-    `Tipo de evento: ${data.get("event")}`,
-    `Preferência: ${data.get("delivery")}`,
-    data.get("neighborhood")?`Bairro/região: ${data.get("neighborhood")}`:null,
+    "Nome: " + data.get("name"),
+    "WhatsApp para retorno: " + phone,
+    "Data do evento: " + new Date(date + "T12:00:00").toLocaleDateString("pt-BR"),
+    "Tipo de evento: " + data.get("event"),
+    "Preferência: " + data.get("delivery"),
+    data.get("neighborhood") ? "Bairro/região: " + data.get("neighborhood") : null,
     "",
     "Itens selecionados:",
-    ...items,
-    data.get("notes")?`Detalhes: ${data.get("notes")}`:null,
+    ...lines,
+    data.get("notes") ? "Detalhes: " + data.get("notes") : null,
     "",
     "Podem confirmar disponibilidade, valores e condições?"
   ].filter(Boolean).join("\n");
-  // Não persiste nome, telefone ou informações do evento no navegador. O cliente envia diretamente à loja.
-  const url="https://wa.me/"+CONFIG.whatsapp+"?text="+encodeURIComponent(msg);
-  window.open(url,"_blank","noopener,noreferrer");
+  const whatsappUrl = "https://wa.me/" + CONFIG.whatsapp + "?text=" + encodeURIComponent(message);
+  const opened = window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+  if (!opened) window.location.assign(whatsappUrl);
   notify("Mensagem preparada. Conclua o envio na conversa do WhatsApp.");
 }
-function init(){
-  $("year").textContent=new Date().getFullYear();
-  $("eventDate")?.setAttribute("min",localToday());
-  $("quoteForm").elements.date.min=localToday();
-  $("openQuote").addEventListener("click",openQuote);
-  $("closeQuote").addEventListener("click",closeQuote);
-  $("overlay").addEventListener("click",closeQuote);
-  $("sendQuote").addEventListener("click",sendQuote);
-  $("productSearch").addEventListener("input",e=>{query=e.target.value.toLocaleLowerCase("pt-BR").trim();renderProducts()});
-  $("menuToggle").addEventListener("click",()=>{const open=$("mainNav").classList.toggle("open");$("menuToggle").setAttribute("aria-expanded",String(open));$("menuToggle").textContent=open?"×":"☰"});
-  $("mainNav").querySelectorAll("a").forEach(a=>a.addEventListener("click",()=>{$("mainNav").classList.remove("open");$("menuToggle").setAttribute("aria-expanded","false");$("menuToggle").textContent="☰"}));
-  document.addEventListener("keydown",e=>{if(e.key==="Escape")closeQuote()});
-  renderFilters();renderProducts();renderQuote();
+function init() {
+  $("year").textContent = new Date().getFullYear();
+  $("quoteForm").elements.date.min = localToday();
+  $("openQuote").addEventListener("click", openQuote);
+  $("closeQuote").addEventListener("click", () => closeQuote());
+  $("overlay").addEventListener("click", () => closeQuote());
+  $("sendQuote").addEventListener("click", sendQuote);
+  $("productSearch").addEventListener("input", event => {
+    query = event.target.value.toLocaleLowerCase("pt-BR").trim();
+    renderProducts();
+  });
+  $("menuToggle").addEventListener("click", () => {
+    const open = $("mainNav").classList.toggle("open");
+    $("menuToggle").setAttribute("aria-expanded", String(open));
+    $("menuToggle").setAttribute("aria-label", open ? "Fechar menu" : "Abrir menu");
+    $("menuToggle").textContent = open ? "×" : "☰";
+  });
+  $("mainNav").querySelectorAll("a").forEach(link => link.addEventListener("click", () => {
+    $("mainNav").classList.remove("open");
+    $("menuToggle").setAttribute("aria-expanded", "false");
+    $("menuToggle").setAttribute("aria-label", "Abrir menu");
+    $("menuToggle").textContent = "☰";
+  }));
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape") closeQuote();
+    if (event.key !== "Tab" || !$("quoteDrawer").classList.contains("open")) return;
+    const focusable = Array.from($("quoteDrawer").querySelectorAll(
+      'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled])'
+    )).filter(element => element.getClientRects().length > 0);
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  });
+  window.addEventListener("storage", event => {
+    if (event.key !== PRODUCTS_KEY) return;
+    products = normalizeProducts(safeRead(PRODUCTS_KEY, DEFAULT_PRODUCTS));
+    selected = Object.fromEntries(Object.entries(selected).filter(([id]) => products.some(product => product.id === id)));
+    renderFilters();
+    renderProducts();
+    renderQuote();
+  });
+  $("quoteDrawer").inert = true;
+  renderFilters();
+  renderProducts();
+  renderQuote();
 }
 init();

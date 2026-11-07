@@ -23,7 +23,7 @@ A área de gestão grava diretamente no arquivo `data/agenda.json`, usando a API
 A primeira conexão pode oferecer a migração de produtos, festas e bloqueios que estavam salvos no armazenamento local deste navegador. Exporte uma cópia completa antes de migrar ou restaurar dados importantes.
 
 ## O que aparece para os visitantes
-O repositório e o GitHub Pages são públicos. Por isso, o arquivo publicado contém apenas:
+O site GitHub Pages e o arquivo de dados publicado são acessíveis publicamente. Por isso, o arquivo publicado contém apenas:
 - produtos, imagens, descrições e quantidade física cadastrada;
 - quantidade livre por peça e data, sem nome, código ou observações da festa.
 
@@ -46,7 +46,7 @@ Use **Baixar cópia completa da agenda** antes de mudanças importantes. O arqui
 ## Dados comerciais ainda pendentes de confirmação
 - O WhatsApp oficial não está configurado no código até a loja confirmar o número.
 - O Instagram `@familiadecora_oficial` deve ser confirmado pela loja antes de ser tratado como perfil oficial.
-- O catálogo inicial contém produtos e fotografias ilustrativos, não um inventário confirmado. Atualize nomes, fotos, temas e quantidades reais antes de divulgar disponibilidade.
+- O catálogo inicial contém produtos e fotografias ilustrativos, com estoque provisório, não um inventário confirmado. Atualize nomes, fotos, temas e quantidades reais e só depois ative a publicação de disponibilidade.
 - Preços, taxas de entrega e montagem ainda não foram confirmados.
 
 ## Limitações importantes

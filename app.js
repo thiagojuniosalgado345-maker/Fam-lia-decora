@@ -87,7 +87,7 @@ function getSelectedEventDate() {
   return $("quoteForm").elements.date.value || "";
 }
 function availabilityFor(product, date) {
-  if (!product || !date || !publicAvailability || date < publicAvailability.from || date > publicAvailability.through) return null;
+  if (!product || !date || !publicAvailability || publicAvailability.enabled !== true || date < publicAvailability.from || date > publicAvailability.through) return null;
   const day = publicAvailability.days && publicAvailability.days[date];
   if (day && Object.prototype.hasOwnProperty.call(day,product.id)) {
     return Math.max(0,Number(day[product.id]) || 0);

@@ -832,6 +832,10 @@ $("publishAvailability").addEventListener("change", async event => {
     return;
   }
   const previous = publishAvailability;
+  if (event.target.checked && !confirm("Publicar agora os totais de unidades livres por produto e data para todos os visitantes da loja? Não serão exibidos os dados das festas.")) {
+    event.target.checked = previous;
+    return;
+  }
   publishAvailability = event.target.checked;
   const saved = await commitGithubSnapshot({products,events,unavailable},
     publishAvailability ? "Disponibilidade publicada na loja." : "Disponibilidade ocultada da loja.");
@@ -918,7 +922,7 @@ $("importCatalog").addEventListener("change", async event => {
     products = validated;
     resetProductForm();
     renderAll();
-    alert("Catálogo importado neste navegador.");
+    
   } catch (error) {
     alert(error.message === "A importação removeria peças usadas na agenda."
       ? error.message

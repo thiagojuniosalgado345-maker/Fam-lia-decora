@@ -1,0 +1,27 @@
+const PRODUCT_KEY="familia-decora-products-v2";const BLOCK_KEY="familia-decora-blocked-dates-v1";
+const DEFAULT=[
+{id:"kit-pequeno",name:"Kit Pegue e Monte",category:"Kits",tag:"Kit para festa",description:"Uma seleção prática de peças para montar uma comemoração do seu jeito.",image:"https://images.unsplash.com/photo-1519225421980-888cb4c1e12c?auto=format&fit=crop&w=1000&q=85"},
+{id:"kit-mini-table",name:"Mini table",category:"Kits",tag:"Comemoração intimista",description:"Uma composição compacta para aniversários e encontros especiais.",image:"https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?auto=format&fit=crop&w=1000&q=85"},
+{id:"paineis",name:"Painéis decorativos",category:"Painéis",tag:"Cenário",description:"Painéis para dar destaque ao tema e criar o cenário da comemoração.",image:"https://images.unsplash.com/photo-1530103862676-de8c9debad1d?auto=format&fit=crop&w=1000&q=85"},
+{id:"cilindros",name:"Cilindros decorativos",category:"Móveis",tag:"Peças avulsas",description:"Peças de diferentes alturas para montar uma composição personalizada.",image:"https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1000&q=85"},
+{id:"mesa",name:"Mesas para decoração",category:"Móveis",tag:"Peças avulsas",description:"Móveis de apoio para destacar bolo, doces e outros elementos decorativos.",image:"https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=1000&q=85"},
+{id:"pecas",name:"Bandejas e acessórios",category:"Peças",tag:"Complemente sua festa",description:"Detalhes para completar kits ou criar uma decoração com a sua identidade.",image:"https://images.unsplash.com/photo-1523438885200-e635ba2c371e?auto=format&fit=crop&w=1000&q=85"}];
+const read=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}};const write=(k,v)=>localStorage.setItem(k,JSON.stringify(v));const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let products=read(PRODUCT_KEY,DEFAULT);let blocked=read(BLOCK_KEY,[]);
+function renderProducts(){
+ $("productTotal").textContent=products.length+" itens";
+ $("productRows").innerHTML=products.map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(p.category)}</td><td><button type="button" data-delete="${esc(p.id)}">Excluir</button></td></tr>`).join("")||'<tr><td colspan="3">Nenhum produto cadastrado.</td></tr>';
+ $("productRows").querySelectorAll("[data-delete]").forEach(b=>b.addEventListener("click",()=>{if(!confirm("Excluir este produto do catálogo?"))return;products=products.filter(p=>p.id!==b.dataset.delete);write(PRODUCT_KEY,products);renderProducts()}));
+}
+function renderBlocked(){
+ blocked.sort((a,b)=>a.date.localeCompare(b.date));
+ $("blockedRows").innerHTML=blocked.map(x=>`<tr><td>${new Date(x.date+"T12:00:00").toLocaleDateString("pt-BR")}</td><td>${esc(x.note||"Data bloqueada")}</td><td><button type="button" data-unblock="${esc(x.date)}">Desbloquear</button></td></tr>`).join("")||'<tr><td colspan="3">Nenhuma data anotada.</td></tr>';
+ $("blockedRows").querySelectorAll("[data-unblock]").forEach(b=>b.addEventListener("click",()=>{blocked=blocked.filter(x=>x.date!==b.dataset.unblock);write(BLOCK_KEY,blocked);renderBlocked()}));
+}
+$("productForm").addEventListener("submit",e=>{e.preventDefault();const d=new FormData(e.currentTarget);const name=d.get("name").trim();const rawImage=d.get("image").trim();let image="https://images.unsplash.com/photo-1519225421980-888cb4c1e12c?auto=format&fit=crop&w=900&q=80";if(rawImage){try{const u=new URL(rawImage);if(u.protocol!=="https:")throw new Error();image=u.href}catch{alert("Informe uma URL de imagem HTTPS válida.");return}}
+ products.push({id:"produto-"+Date.now(),name,category:d.get("category"),tag:d.get("tag").trim()||"Consulte",description:d.get("description").trim(),image});write(PRODUCT_KEY,products);e.currentTarget.reset();renderProducts();alert("Produto salvo neste navegador.")});
+$("restoreProducts").addEventListener("click",()=>{if(!confirm("Restaurar os produtos de exemplo? Isso substituirá o catálogo salvo neste navegador."))return;products=DEFAULT;write(PRODUCT_KEY,products);renderProducts()});
+$("exportCatalog").addEventListener("click",()=>{const blob=new Blob([JSON.stringify(products,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="familia-decora-catalogo.json";a.click();URL.revokeObjectURL(url)});
+$("importCatalog").addEventListener("change",async e=>{const file=e.target.files[0];if(!file)return;try{const parsed=JSON.parse(await file.text());if(!Array.isArray(parsed)||parsed.some(p=>!p.id||!p.name||!p.category||!p.description||!p.image))throw new Error("Formato inválido");products=parsed;write(PRODUCT_KEY,products);renderProducts();alert("Catálogo importado neste navegador.")}catch(err){alert("Não foi possível importar: arquivo JSON inválido.");}e.target.value=""});
+$("blockForm").addEventListener("submit",e=>{e.preventDefault();const d=new FormData(e.currentTarget);const date=d.get("date");if(date<new Date().toLocaleDateString("en-CA")){alert("Escolha uma data de hoje em diante.");return}if(blocked.some(x=>x.date===date)){alert("Esta data já está anotada.");return}blocked.push({date,note:d.get("note").trim()});write(BLOCK_KEY,blocked);e.currentTarget.reset();renderBlocked()});
+$("blockForm").elements.date.min=new Date().toLocaleDateString("en-CA");renderProducts();renderBlocked();

@@ -103,7 +103,6 @@ async function loadPublicData() {
       throw new Error("Arquivo de catálogo em formato inválido.");
     }
     const remoteProducts = normalizeProducts(documentData.products);
-    if (!remoteProducts.length) throw new Error("Nenhum produto válido foi encontrado no catálogo.");
     products = remoteProducts;
     publicAvailability = documentData.availability && typeof documentData.availability === "object"
       ? documentData.availability

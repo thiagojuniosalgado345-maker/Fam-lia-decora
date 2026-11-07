@@ -3,6 +3,16 @@
 const PRODUCT_KEY = "familia-decora-products-v2";
 const EVENT_KEY = "familia-decora-events-v1";
 const UNAVAILABLE_KEY = "familia-decora-unavailable-items-v1";
+const GITHUB_REPOSITORY = "thiagojuniosalgado345-maker/Fam-lia-decora";
+const GITHUB_DATA_PATH = "data/agenda.json";
+const GITHUB_API_URL = "https://api.github.com/repos/" + GITHUB_REPOSITORY + "/contents/" + GITHUB_DATA_PATH;
+const CRYPTO_ITERATIONS = 310000;
+let githubToken = "";
+let agendaPassphrase = "";
+let githubSha = "";
+let githubReady = false;
+let githubSaveInProgress = false;
+let publicDocument = null;
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1519225421980-888cb4c1e12c?auto=format&fit=crop&w=900&q=80";
 const DEFAULT = [
   {id:"kit-pequeno",name:"Kit Pegue e Monte",category:"Kits",tag:"Kit para festa",description:"Uma seleção prática de peças para montar uma comemoração do seu jeito.",image:"https://images.unsplash.com/photo-1519225421980-888cb4c1e12c?auto=format&fit=crop&w=1000&q=85",stock:1},
@@ -47,15 +57,338 @@ function readStorage(key, fallback) {
     return fallback;
   }
 }
-function writeStorage(key, value) {
+function setGithubStatus(message, state = "") {
+  const element = $("githubStatus");
+  if (!element) return;
+  element.textContent = message;
+  element.className = "github-status" + (state ? " is-" + state : "");
+  $("refreshGithub").disabled = !githubReady || githubSaveInProgress;
+  $("disconnectGithub").disabled = !githubReady && !githubToken;
+  $("connectGithub").disabled = githubSaveInProgress;
+}
+function utf8ToBase64(value) {
+  const bytes = new TextEncoder().encode(value);
+  let binary = "";
+  for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
+  }
+  return btoa(binary);
+}
+function base64ToUtf8(value) {
+  const binary = atob(String(value || "").replace(/\s/g, ""));
+  const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+async function fetchGithubDocument() {
+  const response = await fetch(GITHUB_API_URL, {
+    method:"GET",
+    cache:"no-store",
+    headers:{
+      "Accept":"application/vnd.github+json",
+      "Authorization":"Bearer " + githubToken,
+      "X-GitHub-Api-Version":"2022-11-28"
+    }
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new Error("O GitHub recusou o token. Confira se ele é Fine-grained, pertence à sua conta e tem Contents: Read and write neste repositório.");
+    }
+    throw new Error("Não foi possível ler o arquivo da agenda no GitHub (HTTP " + response.status + ").");
+  }
+  if (!result.content || !result.sha) throw new Error("O arquivo data/agenda.json está vazio ou em formato inesperado.");
+  const documentData = JSON.parse(base64ToUtf8(result.content));
+  if (documentData.schemaVersion !== 1 || !Array.isArray(documentData.products)) {
+    throw new Error("O arquivo de dados do GitHub não segue o formato esperado.");
+  }
+  return {document:documentData,sha:result.sha};
+}
+async function deriveAgendaKey(passphrase, salt) {
+  const material = await crypto.subtle.importKey(
+    "raw", new TextEncoder().encode(passphrase), "PBKDF2", false, ["deriveKey"]
+  );
+  return crypto.subtle.deriveKey(
+    {name:"PBKDF2",salt,iterations:CRYPTO_ITERATIONS,hash:"SHA-256"},
+    material,
+    {name:"AES-GCM",length:256},
+    false,
+    ["encrypt","decrypt"]
+  );
+}
+async function encryptPrivateAgenda(snapshot) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveAgendaKey(agendaPassphrase, salt);
+  const privateData = {
+    events:snapshot.events,
+    unavailable:snapshot.unavailable
+  };
+  const encrypted = await crypto.subtle.encrypt(
+    {name:"AES-GCM",iv},
+    key,
+    new TextEncoder().encode(JSON.stringify(privateData))
+  );
+  return {
+    version:1,
+    algorithm:"AES-256-GCM",
+    kdf:"PBKDF2-SHA-256",
+    iterations:CRYPTO_ITERATIONS,
+    salt:utf8BytesToBase64(salt),
+    iv:utf8BytesToBase64(iv),
+    ciphertext:utf8BytesToBase64(new Uint8Array(encrypted))
+  };
+}
+function utf8BytesToBase64(bytes) {
+  let binary = "";
+  for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
+  }
+  return btoa(binary);
+}
+function base64ToBytes(value) {
+  const binary = atob(String(value || ""));
+  return Uint8Array.from(binary, character => character.charCodeAt(0));
+}
+async function decryptPrivateAgenda(record) {
+  if (!record || record.version !== 1 || record.algorithm !== "AES-256-GCM" ||
+      record.kdf !== "PBKDF2-SHA-256" || record.iterations !== CRYPTO_ITERATIONS) {
+    throw new Error("O conteúdo criptografado da agenda não é compatível.");
+  }
   try {
-    localStorage.setItem(key, JSON.stringify(value));
-    return true;
+    const key = await deriveAgendaKey(agendaPassphrase, base64ToBytes(record.salt));
+    const plain = await crypto.subtle.decrypt(
+      {name:"AES-GCM",iv:base64ToBytes(record.iv)},
+      key,
+      base64ToBytes(record.ciphertext)
+    );
+    const parsed = JSON.parse(new TextDecoder().decode(plain));
+    if (!Array.isArray(parsed.events) || !Array.isArray(parsed.unavailable)) {
+      throw new Error("Formato da agenda inválido.");
+    }
+    return parsed;
   } catch {
-    alert("O navegador não conseguiu salvar. Verifique o espaço disponível e as permissões.");
-    return false;
+    throw new Error("Não foi possível abrir a agenda. A senha está incorreta ou o arquivo foi alterado.");
   }
 }
+function datePlusDays(dateValue, amount) {
+  const date = dateFromISO(dateValue);
+  date.setDate(date.getDate() + amount);
+  return localDateISO(date);
+}
+function buildPublicAvailability(snapshot) {
+  const used = new Map();
+  function addUse(date, productId, quantity) {
+    if (!used.has(date)) used.set(date, new Map());
+    const day = used.get(date);
+    day.set(productId, (day.get(productId) || 0) + quantity);
+  }
+  snapshot.events.filter(event => eventUsesInventory(event)).forEach(event => {
+    event.items.forEach(item => addUse(event.date,item.productId,item.quantity));
+  });
+  snapshot.unavailable.forEach(block => {
+    let date = block.startDate;
+    let guard = 0;
+    while (date <= block.endDate && guard < 740) {
+      addUse(date,block.productId,block.quantity);
+      date = datePlusDays(date,1);
+      guard += 1;
+    }
+  });
+  const from = localDateISO();
+  const throughCandidates = [datePlusDays(from,365)];
+  snapshot.events.forEach(event => throughCandidates.push(event.date));
+  snapshot.unavailable.forEach(block => throughCandidates.push(block.endDate));
+  const through = throughCandidates.sort().pop();
+  const days = {};
+  used.forEach((byProduct,date) => {
+    const values = {};
+    byProduct.forEach((quantity,productId) => {
+      const product = snapshot.products.find(item => item.id === productId);
+      if (product) values[productId] = Math.max(0,product.stock-quantity);
+    });
+    days[date] = values;
+  });
+  return {from,through,days};
+}
+function cleanSnapshot(snapshot) {
+  return JSON.parse(JSON.stringify({
+    products:snapshot.products,
+    events:snapshot.events,
+    unavailable:snapshot.unavailable
+  }));
+}
+async function commitGithubSnapshot(snapshotValue, successMessage = "Alterações salvas no GitHub.") {
+  if (!githubToken || !agendaPassphrase || !githubSha) {
+    setGithubStatus("Conecte ao GitHub para salvar.");
+    return false;
+  }
+  if (githubSaveInProgress) return false;
+  githubSaveInProgress = true;
+  setGithubStatus("Salvando no GitHub…","saving");
+  const snapshot = cleanSnapshot(snapshotValue);
+  try {
+    const latest = await fetchGithubDocument();
+    if (latest.sha !== githubSha) {
+      githubReady = false;
+      throw new Error("O arquivo foi alterado no GitHub por outro acesso. Para evitar apagar dados, atualize a agenda do GitHub antes de tentar novamente.");
+    }
+    const nextDocument = {
+      schemaVersion:1,
+      initialized:true,
+      updatedAt:new Date().toISOString(),
+      products:snapshot.products,
+      availability:buildPublicAvailability(snapshot),
+      privateAgenda:await encryptPrivateAgenda(snapshot)
+    };
+    const response = await fetch(GITHUB_API_URL,{
+      method:"PUT",
+      headers:{
+        "Accept":"application/vnd.github+json",
+        "Authorization":"Bearer " + githubToken,
+        "X-GitHub-Api-Version":"2022-11-28",
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        message:"Atualizar agenda, estoque e disponibilidade da Família Decora",
+        content:utf8ToBase64(JSON.stringify(nextDocument,null,2)),
+        sha:githubSha
+      })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.content || !result.content.sha) {
+      if (response.status === 409 || response.status === 422) githubReady = false;
+      throw new Error(response.status === 409 || response.status === 422
+        ? "O GitHub identificou uma gravação concorrente. Atualize os dados antes de salvar novamente."
+        : "O GitHub não aceitou a gravação (HTTP " + response.status + "). Confira a permissão Contents: Read and write do token.");
+    }
+    githubSha = result.content.sha;
+    publicDocument = nextDocument;
+    setGithubStatus("Conectado · salvo às " + new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}),"connected");
+    if (successMessage) $("githubStatus").title = successMessage;
+    return true;
+  } catch (error) {
+    setGithubStatus(githubReady ? "Falha ao salvar" : "Atualize e conecte novamente.");
+    alert(error.message || "Não foi possível salvar a agenda no GitHub.");
+    return false;
+  } finally {
+    githubSaveInProgress = false;
+    $("refreshGithub").disabled = !githubReady;
+    $("disconnectGithub").disabled = !githubReady;
+    $("connectGithub").disabled = false;
+  }
+}
+function writeStorage(key, value, successMessage = "") {
+  if (!githubReady) {
+    alert("Primeiro conecte a agenda ao GitHub na parte superior desta página.");
+    return false;
+  }
+  if (githubSaveInProgress) {
+    alert("Uma gravação está em andamento. Aguarde a confirmação antes de fazer outra alteração.");
+    return false;
+  }
+  const snapshot = {
+    products:key === PRODUCT_KEY ? value : products,
+    events:key === EVENT_KEY ? value : events,
+    unavailable:key === UNAVAILABLE_KEY ? value : unavailable
+  };
+  void commitGithubSnapshot(snapshot,successMessage);
+  return true;
+}
+async function loadGithubIntoPanel(documentData, sha) {
+  const remoteProducts = normalizeCatalog(documentData.products);
+  if (!remoteProducts) throw new Error("O catálogo publicado no arquivo de dados está inválido.");
+  products = remoteProducts;
+  if (!documentData.privateAgenda) {
+    events = [];
+    unavailable = [];
+    githubSha = sha;
+    publicDocument = documentData;
+    githubReady = true;
+    const legacyHasData = legacySnapshot.events.length || legacySnapshot.unavailable.length ||
+      JSON.stringify(legacySnapshot.products) !== JSON.stringify(DEFAULT);
+    let initial = {products,events:[],unavailable:[]};
+    if (legacyHasData && confirm("Encontrei produtos, festas ou bloqueios salvos anteriormente neste navegador. Deseja migrar esses dados para o GitHub agora?")) {
+      initial = legacySnapshot;
+    }
+    const saved = await commitGithubSnapshot(initial,"Agenda inicializada.");
+    if (!saved) throw new Error("Não foi possível inicializar a agenda no GitHub.");
+    products = initial.products;
+    events = initial.events;
+    unavailable = initial.unavailable;
+    return;
+  }
+  const privateData = await decryptPrivateAgenda(documentData.privateAgenda);
+  const normalizedEvents = normalizeEvents(privateData.events);
+  const normalizedUnavailable = normalizeUnavailable(privateData.unavailable);
+  if (normalizedEvents.length !== privateData.events.length ||
+      normalizedUnavailable.length !== privateData.unavailable.length) {
+    throw new Error("Há registros inválidos na agenda criptografada. Não carreguei os dados parcialmente.");
+  }
+  events = normalizedEvents;
+  unavailable = normalizedUnavailable;
+  githubSha = sha;
+  publicDocument = documentData;
+  githubReady = true;
+}
+async function connectGithub() {
+  const tokenField = $("githubToken");
+  const passField = $("agendaPassphrase");
+  const token = tokenField.value.trim();
+  const passphrase = passField.value;
+  if (!token) {
+    alert("Cole o token Fine-grained do GitHub.");
+    tokenField.focus();
+    return;
+  }
+  if (passphrase.length < 16) {
+    alert("Use uma senha de agenda com pelo menos 16 caracteres. Guarde-a: sem ela não será possível descriptografar a agenda.");
+    passField.focus();
+    return;
+  }
+  githubToken = token;
+  agendaPassphrase = passphrase;
+  setGithubStatus("Conectando…","saving");
+  try {
+    const remote = await fetchGithubDocument();
+    await loadGithubIntoPanel(remote.document,remote.sha);
+    tokenField.value = "";
+    passField.value = "";
+    renderAll();
+    setGithubStatus("Conectado ao GitHub","connected");
+  } catch (error) {
+    githubReady = false;
+    githubToken = "";
+    agendaPassphrase = "";
+    setGithubStatus("Não conectado");
+    alert(error.message || "Não foi possível conectar ao GitHub.");
+  }
+}
+async function refreshGithubData() {
+  if (!githubToken || !agendaPassphrase || !githubReady || githubSaveInProgress) return;
+  try {
+    const remote = await fetchGithubDocument();
+    if (remote.sha === githubSha) {
+      setGithubStatus("Agenda já está atualizada","connected");
+      return;
+    }
+    if (!confirm("Há uma versão mais recente no GitHub. Recarregar agora? O que estiver aberto neste painel será substituído pelos dados do GitHub.")) return;
+    await loadGithubIntoPanel(remote.document,remote.sha);
+    renderAll();
+    setGithubStatus("Agenda atualizada do GitHub","connected");
+  } catch (error) {
+    githubReady = false;
+    setGithubStatus("Reconecte para continuar.");
+    alert(error.message || "Não foi possível atualizar a agenda.");
+  }
+}
+function disconnectGithub() {
+  githubToken = "";
+  agendaPassphrase = "";
+  githubSha = "";
+  githubReady = false;
+  setGithubStatus("Desconectado");
+}
+
 function safeImage(value) {
   if (!value) return FALLBACK_IMAGE;
   try {
@@ -145,6 +478,7 @@ function normalizeUnavailable(value) {
 }
 let events = normalizeEvents(readStorage(EVENT_KEY, []));
 let unavailable = normalizeUnavailable(readStorage(UNAVAILABLE_KEY, []));
+const legacySnapshot = JSON.parse(JSON.stringify({products,events,unavailable}));
 let editingProductId = null;
 let editingEventId = null;
 let eventItemsState = [];
@@ -477,6 +811,9 @@ function renderAll() {
   renderUnavailable();
   renderEventItems();
 }
+$("connectGithub").addEventListener("click", connectGithub);
+$("refreshGithub").addEventListener("click", refreshGithubData);
+$("disconnectGithub").addEventListener("click", disconnectGithub);
 $("productForm").addEventListener("submit", event => {
   event.preventDefault();
   const data = new FormData(event.currentTarget);
@@ -513,11 +850,11 @@ $("productForm").addEventListener("submit", event => {
   const nextProducts = wasEditing
     ? products.map(item => item.id === editingProductId ? product : item)
     : [...products, product];
-  if (!writeStorage(PRODUCT_KEY, nextProducts)) return;
+  if (!writeStorage(PRODUCT_KEY, nextProducts, wasEditing ? "Produto atualizado." : "Produto cadastrado.")) return;
   products = nextProducts;
   resetProductForm();
   renderAll();
-  alert(wasEditing ? "Produto atualizado." : "Produto cadastrado.");
+  
 });
 $("cancelEdit").addEventListener("click", resetProductForm);
 $("restoreProducts").addEventListener("click", () => {
@@ -526,7 +863,7 @@ $("restoreProducts").addEventListener("click", () => {
     return;
   }
   if (!confirm("Restaurar os produtos de exemplo? Isso substituirá o catálogo salvo neste navegador.")) return;
-  if (!writeStorage(PRODUCT_KEY, DEFAULT)) return;
+  if (!writeStorage(PRODUCT_KEY, DEFAULT, "Catálogo de exemplo restaurado.")) return;
   products = DEFAULT.slice();
   resetProductForm();
   renderAll();
@@ -551,7 +888,7 @@ $("importCatalog").addEventListener("change", async event => {
     const newIds = new Set(validated.map(product => product.id));
     const referencedIds = new Set(events.flatMap(event => event.items.map(item => item.productId)).concat(unavailable.map(item => item.productId)));
     if (Array.from(referencedIds).some(id => !newIds.has(id))) throw new Error("A importação removeria peças usadas na agenda.");
-    if (!writeStorage(PRODUCT_KEY, validated)) return;
+    if (!writeStorage(PRODUCT_KEY, validated, "Catálogo importado.")) return;
     products = validated;
     resetProductForm();
     renderAll();
@@ -616,14 +953,14 @@ $("eventForm").addEventListener("submit", event => {
   const nextEvents = wasEditing
     ? events.map(item => item.id === editingEventId ? record : item)
     : [...events, record];
-  if (!writeStorage(EVENT_KEY, nextEvents)) return;
+  if (!writeStorage(EVENT_KEY, nextEvents, wasEditing ? "Festa atualizada." : "Festa adicionada à agenda.")) return;
   events = nextEvents;
   selectedDate = date;
   const selected = dateFromISO(date);
   currentMonth = new Date(selected.getFullYear(), selected.getMonth(), 1);
   resetEventForm();
   renderAll();
-  alert(wasEditing ? "Festa atualizada na agenda." : "Festa adicionada à agenda.");
+  
 });
 $("cancelEventEdit").addEventListener("click", resetEventForm);
 $("addEventItem").addEventListener("click", () => {
@@ -734,13 +1071,6 @@ exportAgenda.addEventListener("click", () => {
   link.download = "familia-decora-agenda-backup.json";
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-});
-window.addEventListener("storage", event => {
-  if (![PRODUCT_KEY, EVENT_KEY, UNAVAILABLE_KEY].includes(event.key)) return;
-  products = normalizeCatalog(readStorage(PRODUCT_KEY, DEFAULT)) ?? DEFAULT.slice();
-  events = normalizeEvents(readStorage(EVENT_KEY, []));
-  unavailable = normalizeUnavailable(readStorage(UNAVAILABLE_KEY, []));
-  renderAll();
 });
 $("eventForm").elements.date.min = localDateISO();
 $("cancelEdit").hidden = true;

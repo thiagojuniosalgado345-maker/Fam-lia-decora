@@ -29,6 +29,8 @@ jobs:
         run: |
           node --check app.js
           node --check gestao.js
+      - name: Validar estrutura, IDs e referências locais
+        run: node scripts/validate-site.mjs
       - name: Preparar arquivos do site
         uses: actions/upload-pages-artifact@v3
         with:

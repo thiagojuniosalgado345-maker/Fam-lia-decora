@@ -8,12 +8,29 @@
   <meta property="og:type" content="website">
   <meta property="og:title" content="Família Decora | Celebre do seu jeito">
   <meta property="og:description" content="Kits pegue e monte e locação de peças para transformar momentos especiais.">
+  <meta property="og:url" content="https://thiagojuniosalgado345-maker.github.io/Fam-lia-decora/">
+  <link rel="canonical" href="https://thiagojuniosalgado345-maker.github.io/Fam-lia-decora/">
   <title>Família Decora | Celebre do seu jeito</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="assets/logo-familia-decora.webp" type="image/webp">
   <meta property="og:image" content="https://thiagojuniosalgado345-maker.github.io/Fam-lia-decora/assets/logo-familia-decora.webp">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": "Família Decora",
+    "url": "https://thiagojuniosalgado345-maker.github.io/Fam-lia-decora/",
+    "image": "https://thiagojuniosalgado345-maker.github.io/Fam-lia-decora/assets/logo-familia-decora.webp",
+    "description": "Kits pegue e monte e locação de itens para comemorações em Montes Claros, Minas Gerais.",
+    "areaServed": {
+      "@type": "City",
+      "name": "Montes Claros"
+    },
+    "sameAs": ["https://www.instagram.com/familiadecora_oficial/"]
+  }
+  </script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -155,9 +172,11 @@
         <div class="form-row"><label>Tipo de evento<select name="event"><option>Aniversário</option><option>Chá de bebê / revelação</option><option>Batizado</option><option>Casamento</option><option>Confraternização</option><option>Outro</option></select></label><label>Como prefere receber?<select name="delivery"><option>Retirada / pegue e monte</option><option>Consultar entrega</option><option>Consultar montagem</option><option>A combinar</option></select></label></div>
         <label>Bairro ou região<input name="neighborhood" maxlength="80" placeholder="Onde será o evento?"></label>
         <label>Detalhes, tema ou cores<textarea name="notes" rows="3" maxlength="500" placeholder="Conte como imagina sua decoração (opcional)"></textarea></label>
+        <label class="privacy-consent"><input type="checkbox" name="privacyConsent" required><span>Autorizo compartilhar as informações preenchidas com a Família Decora para receber uma resposta sobre este orçamento.</span></label>
+        <p class="privacy-note">O site não armazena seus dados. Ao preparar o pedido, você escolherá o canal de contato disponível e poderá revisar a mensagem antes de enviá-la.</p>
       </form>
     </div>
-    <div class="drawer-footer"><button class="button button-primary full" id="sendQuote" type="button">Enviar orçamento pelo WhatsApp ↗</button><p>O pedido não confirma reserva. A equipe verificará disponibilidade, valores e condições com você.</p></div>
+    <div class="drawer-footer"><button class="button button-primary full" id="sendQuote" type="button">Preparar pedido e abrir contato ↗</button><p>O pedido não confirma reserva. A equipe verificará disponibilidade, valores e condições com você.</p></div>
   </aside>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>

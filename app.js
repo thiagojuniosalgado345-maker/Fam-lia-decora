@@ -226,8 +226,7 @@ function sendQuote() {
     "Podem confirmar disponibilidade, valores e condições?"
   ].filter(Boolean).join("\n");
   const whatsappUrl = "https://wa.me/" + CONFIG.whatsapp + "?text=" + encodeURIComponent(message);
-  const opened = window.open(whatsappUrl, "_blank", "noopener,noreferrer");
-  if (!opened) window.location.assign(whatsappUrl);
+  window.open(whatsappUrl, "_blank", "noopener,noreferrer");
   notify("Mensagem preparada. Conclua o envio na conversa do WhatsApp.");
 }
 function init() {

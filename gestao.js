@@ -13,6 +13,7 @@ let githubSha = "";
 let githubReady = false;
 let githubSaveInProgress = false;
 let publicDocument = null;
+let publishAvailability = false;
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1519225421980-888cb4c1e12c?auto=format&fit=crop&w=900&q=80";
 const DEFAULT = [
   {id:"kit-pequeno",name:"Kit Pegue e Monte",category:"Kits",tag:"Kit para festa",description:"Uma seleção prática de peças para montar uma comemoração do seu jeito.",image:"https://images.unsplash.com/photo-1519225421980-888cb4c1e12c?auto=format&fit=crop&w=1000&q=85",stock:1},
@@ -65,6 +66,7 @@ function setGithubStatus(message, state = "") {
   $("refreshGithub").disabled = !githubReady || githubSaveInProgress;
   $("disconnectGithub").disabled = !githubReady && !githubToken;
   $("connectGithub").disabled = githubSaveInProgress;
+  $("publishAvailability").disabled = !githubReady || githubSaveInProgress;
 }
 function utf8ToBase64(value) {
   const bytes = new TextEncoder().encode(value);
@@ -176,6 +178,7 @@ function datePlusDays(dateValue, amount) {
   return localDateISO(date);
 }
 function buildPublicAvailability(snapshot) {
+  if (!publishAvailability) return {enabled:false,from:null,through:null,days:{}};
   const used = new Map();
   function addUse(date, productId, quantity) {
     if (!used.has(date)) used.set(date, new Map());
@@ -208,7 +211,7 @@ function buildPublicAvailability(snapshot) {
     });
     days[date] = values;
   });
-  return {from,through,days};
+  return {enabled:true,from,through,days};
 }
 function cleanSnapshot(snapshot) {
   return JSON.parse(JSON.stringify({
@@ -295,14 +298,16 @@ function writeStorage(key, value, successMessage = "") {
   return true;
 }
 async function loadGithubIntoPanel(documentData, sha) {
-  const remoteProducts = normalizeCatalog(documentData.products);
-  if (!remoteProducts) throw new Error("O catálogo publicado no arquivo de dados está inválido.");
-  products = remoteProducts;
+  publishAvailability = Boolean(documentData.availability && documentData.availability.enabled === true);
+  $("publishAvailability").checked = publishAvailability;
+  githubSha = sha;
+  publicDocument = documentData;
   if (!documentData.privateAgenda) {
+    const remoteProducts = normalizeCatalog(documentData.products);
+    if (!remoteProducts) throw new Error("O catálogo publicado no arquivo de dados está inválido.");
+    products = remoteProducts;
     events = [];
     unavailable = [];
-    githubSha = sha;
-    publicDocument = documentData;
     githubReady = true;
     const legacyHasData = legacySnapshot.events.length || legacySnapshot.unavailable.length ||
       JSON.stringify(legacySnapshot.products) !== JSON.stringify(DEFAULT);
@@ -318,6 +323,9 @@ async function loadGithubIntoPanel(documentData, sha) {
     return;
   }
   const privateData = await decryptPrivateAgenda(documentData.privateAgenda);
+  const privateProducts = normalizeCatalog(privateData.products);
+  if (!privateProducts) throw new Error("O catálogo privado criptografado está inválido.");
+  products = privateProducts;
   const normalizedEvents = normalizeEvents(privateData.events);
   const normalizedUnavailable = normalizeUnavailable(privateData.unavailable);
   if (normalizedEvents.length !== privateData.events.length ||
@@ -326,8 +334,6 @@ async function loadGithubIntoPanel(documentData, sha) {
   }
   events = normalizedEvents;
   unavailable = normalizedUnavailable;
-  githubSha = sha;
-  publicDocument = documentData;
   githubReady = true;
 }
 async function connectGithub() {
@@ -819,6 +825,21 @@ function renderAll() {
 $("connectGithub").addEventListener("click", connectGithub);
 $("refreshGithub").addEventListener("click", refreshGithubData);
 $("disconnectGithub").addEventListener("click", disconnectGithub);
+$("publishAvailability").addEventListener("change", async event => {
+  if (!githubReady || githubSaveInProgress) {
+    event.target.checked = publishAvailability;
+    alert("Conecte ao GitHub e aguarde qualquer gravação em andamento para alterar esta opção.");
+    return;
+  }
+  const previous = publishAvailability;
+  publishAvailability = event.target.checked;
+  const saved = await commitGithubSnapshot({products,events,unavailable},
+    publishAvailability ? "Disponibilidade publicada na loja." : "Disponibilidade ocultada da loja.");
+  if (!saved) {
+    publishAvailability = previous;
+    event.target.checked = previous;
+  }
+});
 $("productForm").addEventListener("submit", event => {
   event.preventDefault();
   const data = new FormData(event.currentTarget);

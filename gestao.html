@@ -68,12 +68,12 @@
 
   <section class="management-card">
     <div class="card-heading"><div><span class="card-kicker">03 / Disponibilidade manual</span><h2>Marcar peça como indisponível</h2></div></div>
-    <p class="management-help">Use quando um painel, cilindro, mesa ou objeto estiver em manutenção, emprestado ou fora de uso. Escolha o período; a quantidade bloqueada será descontada da disponibilidade para festas nessas datas.</p>
+    <p class="management-help">Use quando um painel, cilindro, mesa ou objeto estiver em manutenção, emprestado ou fora de uso. O período inclui as duas datas: a peça fica bloqueada desde o início até o último dia escolhido, inclusive.</p>
     <form id="unavailableForm" class="management-form unavailable-form">
       <label>Peça / objeto<select name="productId" id="unavailableProduct" required></select></label>
       <label>Quantidade indisponível<input name="quantity" type="number" min="1" max="100" value="1" required></label>
       <label>Indisponível a partir de<input name="startDate" type="date" required></label>
-      <label>Disponível novamente em<input name="endDate" type="date" required></label>
+      <label>Bloquear até (inclusive)<input name="endDate" type="date" required></label>
       <label class="wide">Motivo<input name="reason" maxlength="120" required placeholder="Ex.: Em manutenção, emprestado ou danificado"></label>
       <div class="wide form-actions"><button class="button button-primary" type="submit">Marcar como indisponível</button></div>
     </form>
@@ -83,7 +83,7 @@
 
   <section class="management-card">
     <div class="card-heading"><div><span class="card-kicker">04 / Cadastro de peças</span><h2>Produtos e quantidade em estoque</h2></div><span class="count-pill" id="productTotal">0 itens</span></div>
-    <p class="management-help">Cadastre cada tipo de peça e informe quantas unidades físicas a loja possui. A agenda usa essa quantidade para evitar reservar mais unidades do que existem.</p>
+    <p class="management-help">Cadastre cada tipo de peça e informe quantas unidades físicas a loja possui. A tabela mostra o reservado, o bloqueado e o saldo livre para o dia selecionado no calendário.</p>
     <form id="productForm" class="management-form">
       <label>Nome do produto<input name="name" required maxlength="80" placeholder="Ex.: Painel redondo rosé"></label>
       <label>Categoria<select name="category"><option>Kits</option><option>Painéis</option><option>Móveis</option><option>Peças</option></select></label>
@@ -93,7 +93,7 @@
       <label class="wide">Descrição<input name="description" maxlength="180" required placeholder="Descreva o item para o cliente"></label>
       <div class="wide form-actions"><button class="button button-primary" id="saveProduct" type="submit">Salvar produto +</button><button class="button button-soft" id="cancelEdit" type="button" hidden>Cancelar edição</button><button class="button button-soft" id="restoreProducts" type="button">Restaurar catálogo de exemplo</button></div>
     </form>
-    <div class="table-scroll inventory-table-wrap"><table class="management-table"><thead><tr><th>Peça</th><th>Categoria</th><th>Estoque</th><th>Ação</th></tr></thead><tbody id="productRows"></tbody></table></div>
+    <div class="table-scroll inventory-table-wrap"><table class="management-table"><thead><tr><th>Peça</th><th>Categoria</th><th>Estoque físico</th><th>Reservado</th><th>Bloqueado</th><th>Livre na data selecionada</th><th>Ação</th></tr></thead><tbody id="productRows"></tbody></table></div>
     <div class="form-actions export-actions"><button class="button button-soft" id="exportCatalog" type="button">Baixar catálogo (JSON)</button><label class="button button-soft file-button">Importar catálogo<input id="importCatalog" type="file" accept="application/json,.json"></label></div>
   </section>
 

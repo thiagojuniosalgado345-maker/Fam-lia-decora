@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Área da equipe | Família Decora</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css"><link rel="stylesheet" href="gestao.css">
+</head>
+<body>
+<div class="announcement">FAMÍLIA DECORA <span>—</span> FERRAMENTA INTERNA DE DEMONSTRAÇÃO</div>
+<main class="container management">
+  <div class="management-header"><div><div class="eyebrow"><span></span> Organização da loja</div><h1>Área da equipe</h1><p>Gerencie o catálogo e registre datas indisponíveis neste navegador.</p></div><a class="button button-soft" href="index.html">← Voltar à loja</a></div>
+  <div class="local-warning"><strong>Atenção — versão local, sem login e sem sincronização.</strong> Esta página é um protótipo de organização. As alterações ficam somente no navegador e dispositivo usados aqui. Qualquer pessoa que tenha o endereço pode acessar esta tela. Não cadastre dados pessoais de clientes nem use como agenda oficial compartilhada. Para uso real, precisamos conectar banco de dados e autenticação.</div>
+  <section class="management-card">
+    <div class="card-heading"><div><span class="card-kicker">01 / Vitrine</span><h2>Adicionar produto ou peça</h2></div></div>
+    <form id="productForm" class="management-form">
+      <label>Nome do produto<input name="name" required maxlength="80" placeholder="Ex.: Kit Jardim Encantado"></label>
+      <label>Categoria<select name="category"><option>Kits</option><option>Painéis</option><option>Móveis</option><option>Peças</option></select></label>
+      <label>Etiqueta curta<input name="tag" maxlength="35" placeholder="Ex.: Novo tema"></label>
+      <label>URL da imagem<input name="image" type="url" placeholder="https://..."></label>
+      <label class="wide">Descrição<input name="description" maxlength="180" required placeholder="Descreva o item para o cliente"></label>
+      <div class="wide form-actions"><button class="button button-primary" type="submit">Salvar produto +</button><button class="button button-soft" id="restoreProducts" type="button">Restaurar catálogo de exemplo</button></div>
+    </form>
+  </section>
+  <section class="management-card">
+    <div class="card-heading"><div><span class="card-kicker">02 / Catálogo</span><h2>Produtos cadastrados</h2></div><span class="count-pill" id="productTotal">0 itens</span></div>
+    <div class="table-scroll"><table class="management-table"><thead><tr><th>Produto</th><th>Categoria</th><th>Ação</th></tr></thead><tbody id="productRows"></tbody></table></div>
+    <div class="form-actions export-actions"><button class="button button-soft" id="exportCatalog" type="button">Baixar cópia do catálogo (JSON)</button><label class="button button-soft file-button">Importar catálogo<input id="importCatalog" type="file" accept="application/json,.json"></label></div>
+  </section>
+  <section class="management-card">
+    <div class="card-heading"><div><span class="card-kicker">03 / Agenda</span><h2>Datas indisponíveis</h2></div></div>
+    <p class="management-help">Use este quadro como anotação local de datas já reservadas ou bloqueadas. Ele não consulta nem bloqueia automaticamente os pedidos feitos no site.</p>
+    <form id="blockForm" class="block-form"><label>Data<input name="date" type="date" required></label><label>Motivo / observação<input name="note" maxlength="100" placeholder="Ex.: Evento reservado"></label><button class="button button-primary" type="submit">Bloquear data</button></form>
+    <div class="table-scroll"><table class="management-table"><thead><tr><th>Data</th><th>Observação</th><th>Ação</th></tr></thead><tbody id="blockedRows"></tbody></table></div>
+  </section>
+  <section class="management-card backup-card">
+    <span class="card-kicker">Importante</span><h2>O que esta versão ainda não faz</h2>
+    <p>Os pedidos do cliente são enviados diretamente para o WhatsApp informado no site; eles não são gravados num painel central. Para a equipe administrar pedidos, estoque, disponibilidade por item e reservas de diferentes clientes/dispositivos, será necessário configurar uma base de dados (por exemplo, Supabase), autenticação e regras de acesso.</p>
+  </section>
+</main>
+<script src="gestao.js"></script>
+</body></html>

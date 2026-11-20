@@ -81,9 +81,15 @@
       </div>
       <div class="catalog-controls">
         <div class="filter-list" id="filters" aria-label="Filtrar por categoria"></div>
-        <label class="search-box"><span aria-hidden="true">⌕</span><input id="productSearch" type="search" placeholder="Buscar no catálogo..." aria-label="Buscar produtos"></label>
+        <div class="catalog-tools">
+          <label class="event-date-control">Data da comemoração
+            <input id="catalogEventDate" type="date" aria-describedby="catalogDateHint">
+          </label>
+          <label class="search-box"><span aria-hidden="true">⌕</span><input id="productSearch" type="search" placeholder="Buscar no catálogo..." aria-label="Buscar produtos"></label>
+        </div>
       </div>
-      <p class="illustrative-note">As imagens são referências ilustrativas. Escolha a data do evento no orçamento para consultar as quantidades livres cadastradas pela equipe. A solicitação não confirma reserva: a equipe ainda precisa validar o pedido.</p>
+      <p class="catalog-date-hint" id="catalogDateHint">Escolha a data antes de selecionar as peças. Assim, a disponibilidade cadastrada aparece em cada item.</p>
+      <p class="illustrative-note" id="catalogNote">O catálogo inicial pode conter imagens de referência. Confirme com a equipe os modelos, cores e condições de cada peça. A disponibilidade exibida é uma consulta preliminar; a solicitação não confirma reserva.</p>
       <div class="product-grid" id="productGrid" aria-live="polite"></div>
     </section>
 
@@ -127,7 +133,7 @@
           </details>
           <details class="faq-item">
             <summary>As fotos do catálogo são exatamente os produtos disponíveis?</summary>
-            <p>As imagens atuais são referências ilustrativas. Antes de fechar, confirme com a equipe as peças, cores, temas e modelos disponíveis para a sua data.</p>
+            <p>Confira com a equipe os modelos, cores e detalhes de cada peça antes de fechar o pedido. A foto publicada ajuda na escolha, mas a confirmação final é feita no atendimento.</p>
           </details>
           <details class="faq-item">
             <summary>Posso escolher peças separadas ou montar um kit?</summary>
@@ -161,6 +167,21 @@
   </footer>
 
   <div class="overlay" id="overlay"></div>
+  <dialog class="product-details-dialog" id="productDetailsDialog" aria-labelledby="productDetailsName">
+    <div class="product-details-panel">
+      <button class="icon-button product-details-close" id="closeProductDetails" type="button" aria-label="Fechar detalhes">×</button>
+      <img id="productDetailsImage" class="product-details-image" alt="">
+      <div class="product-details-copy">
+        <span id="productDetailsCategory" class="product-category"></span>
+        <span id="productDetailsTag" class="photo-label-inline"></span>
+        <h2 id="productDetailsName"></h2>
+        <p id="productDetailsDescription"></p>
+        <p id="productDetailsAvailability" class="product-details-availability"></p>
+        <button class="button button-primary full" id="productDetailsAdd" type="button">Adicionar ao orçamento</button>
+      </div>
+    </div>
+  </dialog>
+
   <aside class="quote-drawer" id="quoteDrawer" role="dialog" aria-modal="true" aria-label="Meu orçamento" aria-hidden="true" inert>
     <div class="drawer-header"><div><small>FAMÍLIA DECORA</small><h2>Meu orçamento</h2></div><button class="icon-button" id="closeQuote" type="button" aria-label="Fechar orçamento">×</button></div>
     <div class="drawer-body">

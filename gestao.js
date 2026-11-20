@@ -822,16 +822,23 @@ function renderEventItems() {
 }
 function renderProducts() {
   $("productTotal").textContent = products.length + (products.length === 1 ? " item" : " itens");
-  $("productRows").innerHTML = products.map(product => {
+  const term = $("productAdminSearch").value.trim().toLocaleLowerCase("pt-BR");
+  const visibleProducts = products.filter(product =>
+    [product.name,product.category,product.description,product.tag].join(" ").toLocaleLowerCase("pt-BR").includes(term)
+  ).sort((a,b) => a.name.localeCompare(b.name,"pt-BR"));
+  $("productVisibleTotal").textContent = term
+    ? visibleProducts.length + (visibleProducts.length === 1 ? " peça encontrada" : " peças encontradas")
+    : products.length + (products.length === 1 ? " peça cadastrada" : " peças cadastradas");
+  $("productRows").innerHTML = visibleProducts.map(product => {
     const reserved = bookedQuantity(product.id,selectedDate,null);
     const blocked = blockedQuantity(product.id,selectedDate,null);
     const free = availableQuantity(product.id,selectedDate,null);
-    return '<tr><td>' + escapeHtml(product.name) + '</td><td>' + escapeHtml(product.category) +
+    return '<tr><td><div class="inventory-product-name"><img src="' + escapeHtml(safeImage(product.image)) + '" alt=""><strong>' + escapeHtml(product.name) + '</strong></div></td><td>' + escapeHtml(product.category) +
       '</td><td>' + product.stock + '</td><td>' + reserved + '</td><td>' + blocked + '</td><td><strong>' + free +
       '</strong> livre(s) em ' + formatDate(selectedDate) + '</td><td class="row-actions"><button type="button" data-edit-product="' + escapeHtml(product.id) +
       '">Editar</button> <button type="button" data-delete-product="' + escapeHtml(product.id) +
       '">Excluir</button></td></tr>';
-  }).join("") || '<tr><td colspan="7">Nenhum produto cadastrado.</td></tr>';
+  }).join("") || '<tr><td colspan="7">' + (term ? "Nenhuma peça corresponde a esta busca." : "Nenhum produto cadastrado.") + '</td></tr>';
   $("productRows").querySelectorAll("[data-edit-product]").forEach(button => {
     button.addEventListener("click", () => editProduct(button.dataset.editProduct));
   });
@@ -955,6 +962,7 @@ function renderAll() {
   renderUnavailable();
   renderEventItems();
 }
+$("productAdminSearch").addEventListener("input", renderProducts);
 $("connectGithub").addEventListener("click", connectGithub);
 $("refreshGithub").addEventListener("click", refreshGithubData);
 $("disconnectGithub").addEventListener("click", disconnectGithub);

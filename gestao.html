@@ -29,8 +29,11 @@
     <p class="github-security-note"><strong>Privacidade:</strong> a disponibilidade por data e o catálogo são públicos para os visitantes. Os nomes/códigos dos pedidos, observações, festas e bloqueios ficam criptografados no arquivo. Mesmo assim, prefira usar códigos internos (ex.: FD-001), nunca telefone, CPF, endereço residencial ou dados de pagamento.</p>
   </section>
   <div class="local-warning"><strong>Como funciona agora</strong> Ao salvar uma alteração, esta página grava uma nova versão no repositório Família Decora. Se outro aparelho tiver gravado primeiro, o painel detecta o conflito para não apagar alterações. O site público consulta os números disponíveis por data e atualiza a vitrine automaticamente.</div>
+  <nav class="management-shortcuts" aria-label="Atalhos da gestão">
+    <a href="#agenda">Agenda</a><a href="#eventEditorCard">Nova festa</a><a href="#indisponibilidade">Bloqueios</a><a href="#estoque">Estoque e fotos</a><a href="#backup">Backup</a>
+  </nav>
 
-  <section class="management-card agenda-card">
+  <section class="management-card agenda-card" id="agenda">
     <div class="card-heading"><div><span class="card-kicker">01 / Calendário</span><h2>Agenda de festas</h2></div><span class="count-pill" id="monthEventTotal">0 festas no mês</span></div>
     <div class="calendar-toolbar">
       <button class="calendar-nav" id="previousMonth" type="button" aria-label="Mês anterior">‹</button>
@@ -68,7 +71,7 @@
     </form>
   </section>
 
-  <section class="management-card">
+  <section class="management-card" id="indisponibilidade">
     <div class="card-heading"><div><span class="card-kicker">03 / Disponibilidade manual</span><h2>Marcar peça como indisponível</h2></div></div>
     <p class="management-help">Use quando um painel, cilindro, mesa ou objeto estiver em manutenção, emprestado ou fora de uso. O período inclui as duas datas: a peça fica bloqueada desde o início até o último dia escolhido, inclusive.</p>
     <form id="unavailableForm" class="management-form unavailable-form">
@@ -83,7 +86,7 @@
     <div id="unavailableList" class="unavailable-list"></div>
   </section>
 
-  <section class="management-card">
+  <section class="management-card" id="estoque">
     <div class="card-heading"><div><span class="card-kicker">04 / Cadastro de peças</span><h2>Produtos e quantidade em estoque</h2></div><span class="count-pill" id="productTotal">0 itens</span></div>
     <p class="management-help">Cadastre cada tipo de peça e informe quantas unidades físicas a loja possui. A tabela mostra o reservado, o bloqueado e o saldo livre para o dia selecionado no calendário. Os itens iniciais são exemplos e precisam ser revisados antes de publicar a disponibilidade.</p>
     <form id="productForm" class="management-form">
@@ -114,11 +117,17 @@
       <label class="wide">Descrição<input name="description" maxlength="180" required placeholder="Descreva o item para o cliente"></label>
       <div class="wide form-actions"><button class="button button-primary" id="saveProduct" type="submit">Salvar produto +</button><button class="button button-soft" id="cancelEdit" type="button" hidden>Cancelar edição</button><button class="button button-soft" id="restoreProducts" type="button">Restaurar catálogo de exemplo</button></div>
     </form>
+    <div class="inventory-toolbar">
+      <label class="inventory-search">Buscar peça no estoque
+        <input id="productAdminSearch" type="search" placeholder="Nome, categoria ou descrição...">
+      </label>
+      <span class="management-help" id="productVisibleTotal" aria-live="polite"></span>
+    </div>
     <div class="table-scroll inventory-table-wrap"><table class="management-table"><thead><tr><th>Peça</th><th>Categoria</th><th>Estoque físico</th><th>Reservado</th><th>Bloqueado</th><th>Livre na data selecionada</th><th>Ação</th></tr></thead><tbody id="productRows"></tbody></table></div>
     <div class="form-actions export-actions"><button class="button button-soft" id="exportCatalog" type="button">Baixar catálogo (JSON)</button><label class="button button-soft file-button">Importar catálogo<input id="importCatalog" type="file" accept="application/json,.json"></label></div>
   </section>
 
-  <section class="management-card backup-card">
+  <section class="management-card backup-card" id="backup">
     <span class="card-kicker">Importante</span><h2>Como a disponibilidade é calculada</h2>
     <p>Para cada data, o sistema soma as quantidades reservadas nas festas não canceladas e os bloqueios manuais. Uma nova festa só é salva quando a quantidade pedida não ultrapassa o estoque físico. Festas diferentes no mesmo dia aparecem separadamente. O arquivo público contém somente o catálogo e os totais de disponibilidade; os detalhes das festas e bloqueios são criptografados antes do envio ao GitHub.</p>
     <div class="form-actions backup-actions"><button class="button button-soft" id="exportAgenda" type="button">Baixar cópia completa da agenda (JSON)</button><label class="button button-soft file-button">Restaurar cópia completa<input id="importBackup" type="file" accept="application/json,.json"></label></div>

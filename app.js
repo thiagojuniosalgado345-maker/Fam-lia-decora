@@ -15,6 +15,7 @@ const DEFAULT_PRODUCTS = [
   {id:"pecas",name:"Bandejas e acessórios",category:"Peças",tag:"Complemente sua festa",description:"Detalhes para completar kits ou criar uma decoração com a sua identidade.",image:"https://images.unsplash.com/photo-1523438885200-e635ba2c371e?auto=format&fit=crop&w=1000&q=85"}
 ];
 const PUBLIC_DATA_URL = "data/agenda.json";
+const QUOTE_STORAGE_KEY = "familia-decora.quote.v1";
 let publicAvailability = null;
 const $ = id => document.getElementById(id);
 const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -48,8 +49,27 @@ function normalizeProducts(list) {
     stock: Number.isInteger(Number(product.stock)) && Number(product.stock) >= 0 ? Number(product.stock) : 1
   }));
 }
+function readSavedSelection() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(QUOTE_STORAGE_KEY) || "{}");
+    if (!saved || typeof saved !== "object" || Array.isArray(saved)) return Object.create(null);
+    return Object.fromEntries(Object.entries(saved).filter(([id, quantity]) =>
+      /^[a-zA-Z0-9_-]{1,100}$/.test(id) && Number.isInteger(quantity) && quantity > 0 && quantity <= 99
+    ).slice(0, 100));
+  } catch {
+    return Object.create(null);
+  }
+}
+function persistSelection() {
+  try {
+    localStorage.setItem(QUOTE_STORAGE_KEY, JSON.stringify(selected));
+  } catch {
+    // O orçamento continua funcionando nesta sessão mesmo se o navegador bloquear o armazenamento.
+  }
+}
 let products = DEFAULT_PRODUCTS.slice();
-let selected = Object.create(null);
+let selected = readSavedSelection();
+let activeDetailProductId = "";
 let category = "Todos";
 let query = "";
 let returnFocus = null;
@@ -66,7 +86,7 @@ function notify(message) {
   notify.timer = setTimeout(() => toast.classList.remove("show"), 3000);
 }
 function getSelectedEventDate() {
-  return $("quoteForm").elements.date.value || "";
+  return $("catalogEventDate").value || $("quoteForm").elements.date.value || "";
 }
 function availabilityFor(product, date) {
   if (!product || !date || !publicAvailability || publicAvailability.enabled !== true || date < publicAvailability.from || date > publicAvailability.through) return null;
@@ -90,6 +110,7 @@ async function loadPublicData() {
       ? documentData.availability
       : null;
     selected = Object.fromEntries(Object.entries(selected).filter(([id]) => products.some(product => product.id === id)));
+    persistSelection();
     if (!categories().includes(category)) category = "Todos";
     renderFilters();
     renderProducts();
@@ -139,14 +160,47 @@ function renderProducts() {
       '<div class="product-info"><div class="product-category">' + escapeHtml(product.category) + '</div>' +
       '<h3>' + escapeHtml(product.name) + '</h3><p>' + escapeHtml(product.description) + '</p>' +
       '<div class="product-bottom"><span class="price-hint">' + escapeHtml(availabilityLabel) + '</span>' +
+      '<div class="product-actions"><button type="button" class="details-button" data-details="' + escapeHtml(product.id) + '">Ver detalhes</button>' +
       '<button type="button" class="add-button" data-add="' + escapeHtml(product.id) + '"' +
       (disabled ? ' disabled aria-disabled="true"' : '') + '>' +
-      (available === 0 ? "Indisponível nesta data" : limitReached ? "Limite selecionado" : "Adicionar ao orçamento +") + '</button></div></div>' +
-    '</article>';
+      (available === 0 ? "Indisponível na data" : limitReached ? "Limite selecionado" : "Adicionar +") + '</button></div></div></div></article>';
   }).join("") : '<div class="no-results">Não encontramos itens com essa busca. Tente outro termo ou categoria.</div>';
   $("productGrid").querySelectorAll("[data-add]").forEach(button => {
     button.addEventListener("click", () => addItem(button.dataset.add));
   });
+  $("productGrid").querySelectorAll("[data-details]").forEach(button => {
+    button.addEventListener("click", () => openProductDetails(button.dataset.details));
+  });
+  updateProductDetails();
+}
+function updateProductDetails() {
+  const product = products.find(item => item.id === activeDetailProductId);
+  if (!product || !$("productDetailsDialog").open) return;
+  const available = availabilityFor(product, getSelectedEventDate());
+  const selectedQuantity = selected[product.id] || 0;
+  const remaining = available === null ? null : Math.max(0, available - selectedQuantity);
+  $("productDetailsAvailability").textContent = !getSelectedEventDate()
+    ? "Escolha a data da comemoração para consultar a disponibilidade."
+    : available === null
+      ? "Disponibilidade ainda precisa ser confirmada com a equipe."
+      : remaining > 0
+        ? remaining + (remaining === 1 ? " unidade livre para selecionar." : " unidades livres para selecionar.")
+        : "Sem unidades adicionais disponíveis para esta data.";
+  $("productDetailsAdd").disabled = available === 0 || remaining === 0;
+  $("productDetailsAdd").textContent = $("productDetailsAdd").disabled ? "Indisponível na data" : "Adicionar ao orçamento";
+}
+function openProductDetails(id) {
+  const product = products.find(item => item.id === id);
+  if (!product) return;
+  activeDetailProductId = id;
+  $("productDetailsImage").src = product.image;
+  $("productDetailsImage").alt = product.name;
+  $("productDetailsCategory").textContent = product.category;
+  $("productDetailsTag").textContent = product.tag || product.category;
+  $("productDetailsName").textContent = product.name;
+  $("productDetailsDescription").textContent = product.description;
+  updateProductDetails();
+  $("productDetailsDialog").showModal();
 }
 function addItem(id) {
   const product = products.find(item => item.id === id);
@@ -161,10 +215,10 @@ function addItem(id) {
     return;
   }
   selected[id] = Math.min(99, (selected[id] || 0) + 1);
+  persistSelection();
   renderQuote();
   renderProducts();
-  openQuote();
-  notify("Item adicionado ao seu orçamento.");
+  notify("Item adicionado. Você pode continuar escolhendo e abrir seu orçamento quando terminar.");
 }
 function quoteEntries() {
   return Object.entries(selected).map(([id, quantity]) => ({
@@ -178,7 +232,7 @@ function renderQuote() {
   $("quoteCount").textContent = total;
   const date = getSelectedEventDate();
   $("quoteItems").innerHTML = entries.length
-    ? '<div class="quote-lines">' + entries.map(({product, quantity}) => {
+    ? '<div class="quote-summary"><strong>' + total + (total === 1 ? ' item selecionado' : ' itens selecionados') + '</strong><button type="button" class="clear-quote-button" data-clear-quote>Limpar seleção</button></div><div class="quote-lines">' + entries.map(({product, quantity}) => {
       const available = availabilityFor(product,date);
       const availabilityText = !date
         ? "Informe a data para consultar disponibilidade."
@@ -203,6 +257,7 @@ function renderQuote() {
       const id = button.dataset.qty;
       selected[id] = Math.max(0, (selected[id] || 0) + Number(button.dataset.step));
       if (!selected[id]) delete selected[id];
+      persistSelection();
       renderQuote();
       renderProducts();
     });
@@ -210,10 +265,21 @@ function renderQuote() {
   $("quoteItems").querySelectorAll("[data-remove]").forEach(button => {
     button.addEventListener("click", () => {
       delete selected[button.dataset.remove];
+      persistSelection();
       renderQuote();
       renderProducts();
     });
   });
+  $("quoteItems").querySelectorAll("[data-clear-quote]").forEach(button => {
+    button.addEventListener("click", () => {
+      selected = Object.create(null);
+      persistSelection();
+      renderQuote();
+      renderProducts();
+      notify("Seleção limpa.");
+    });
+  });
+  updateProductDetails();
   $("sendQuote").disabled = !entries.length;
   $("sendQuote").setAttribute("aria-disabled", String(!entries.length));
   $("openQuote").setAttribute("aria-expanded", String($("quoteDrawer").classList.contains("open")));
@@ -330,7 +396,15 @@ async function sendQuote() {
 function init() {
   $("year").textContent = new Date().getFullYear();
   $("quoteForm").elements.date.min = localToday();
+  $("catalogEventDate").min = localToday();
+  $("catalogEventDate").value = $("quoteForm").elements.date.value || "";
+  $("catalogEventDate").addEventListener("change", () => {
+    $("quoteForm").elements.date.value = $("catalogEventDate").value;
+    renderProducts();
+    renderQuote();
+  });
   $("quoteForm").elements.date.addEventListener("change", () => {
+    $("catalogEventDate").value = $("quoteForm").elements.date.value;
     renderProducts();
     renderQuote();
   });
@@ -339,6 +413,15 @@ function init() {
   $("closeQuote").addEventListener("click", () => closeQuote());
   $("overlay").addEventListener("click", () => closeQuote());
   $("sendQuote").addEventListener("click", sendQuote);
+  $("closeProductDetails").addEventListener("click", () => $("productDetailsDialog").close());
+  $("productDetailsDialog").addEventListener("click", event => {
+    if (event.target === $("productDetailsDialog")) $("productDetailsDialog").close();
+  });
+  $("productDetailsAdd").addEventListener("click", () => {
+    const id = activeDetailProductId;
+    $("productDetailsDialog").close();
+    if (id) addItem(id);
+  });
   $("productSearch").addEventListener("input", event => {
     query = event.target.value.toLocaleLowerCase("pt-BR").trim();
     renderProducts();

@@ -103,6 +103,9 @@ const adminRequiredIds = [
   "productImagePreviewImage",
   "productImagePreviewTitle",
   "clearProductImage",
+  "catalogEventDate",
+  "productDetailsDialog",
+  "productDetailsAdd",
   "githubToken",
   "agendaPassphrase",
   "publishAvailability",
@@ -110,7 +113,9 @@ const adminRequiredIds = [
   "refreshGithub",
   "disconnectGithub",
   "exportAgenda",
-  "importBackup"
+  "importBackup",
+  "productAdminSearch",
+  "productVisibleTotal"
 ];
 const adminIds = new Set([...management.matchAll(/\bid=["']([^"']+)["']/g)].map(match => match[1]));
 const missingAdminIds = adminRequiredIds.filter(id => !adminIds.has(id));
@@ -137,7 +142,10 @@ for (const requiredFeature of [
   "optimizeProductImage",
   "uploadProductImage",
   "assets/products/",
-  "productImageFile"
+  "productImageFile",
+  "productAdminSearch",
+  "inventory-product-name",
+  "management-shortcuts"
 ]) {
   if (!managementScript.includes(requiredFeature)) {
     throw new Error("Funcionalidade da agenda/estoque/GitHub ausente: " + requiredFeature);
@@ -145,7 +153,7 @@ for (const requiredFeature of [
 }
 
 const publicApp = readFileSync("app.js", "utf8");
-for (const requiredFeature of ["PUBLIC_DATA_URL", "loadPublicData", "availabilityFor"]) {
+for (const requiredFeature of ["PUBLIC_DATA_URL", "loadPublicData", "availabilityFor", "persistSelection", "openProductDetails", "catalogEventDate", "data-clear-quote"]) {
   if (!publicApp.includes(requiredFeature)) {
     throw new Error("Integração da vitrine com a disponibilidade ausente: " + requiredFeature);
   }

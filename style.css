@@ -143,3 +143,11 @@ button:disabled{cursor:not-allowed;transform:none;box-shadow:none}
   .product-details-copy h2{font-size:28px}
   .product-actions{justify-content:flex-start}
 }
+
+
+/* Atalho flutuante para voltar ao orçamento sem interromper a escolha dos produtos */
+.floating-quote-button{position:fixed;right:20px;bottom:20px;z-index:35;display:flex;align-items:center;gap:10px;padding:13px 17px;border:0;border-radius:30px;background:var(--rose-dark);color:#fff;box-shadow:0 8px 28px rgba(85,43,61,.24);font:700 11px var(--sans)}
+.floating-quote-button b{display:grid;place-items:center;min-width:22px;height:22px;padding:0 5px;border-radius:50%;background:#fff;color:var(--rose-dark);font-size:10px}
+.floating-quote-button[hidden]{display:none}
+.floating-quote-button:focus-visible{outline:3px solid #c68ba1;outline-offset:3px}
+@media(max-width:680px){.floating-quote-button{right:13px;bottom:13px;left:13px;justify-content:center}}

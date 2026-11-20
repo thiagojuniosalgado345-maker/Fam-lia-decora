@@ -230,6 +230,8 @@ function renderQuote() {
   const entries = quoteEntries();
   const total = entries.reduce((sum, item) => sum + item.quantity, 0);
   $("quoteCount").textContent = total;
+  $("floatingQuoteCount").textContent = total;
+  $("floatingQuote").hidden = total === 0;
   const date = getSelectedEventDate();
   $("quoteItems").innerHTML = entries.length
     ? '<div class="quote-summary"><strong>' + total + (total === 1 ? ' item selecionado' : ' itens selecionados') + '</strong><button type="button" class="clear-quote-button" data-clear-quote>Limpar seleção</button></div><div class="quote-lines">' + entries.map(({product, quantity}) => {
@@ -409,6 +411,7 @@ function init() {
     renderQuote();
   });
   $("openQuote").addEventListener("click", openQuote);
+  $("floatingQuote").addEventListener("click", openQuote);
   $("faqOpenQuote").addEventListener("click", openQuote);
   $("closeQuote").addEventListener("click", () => closeQuote());
   $("overlay").addEventListener("click", () => closeQuote());

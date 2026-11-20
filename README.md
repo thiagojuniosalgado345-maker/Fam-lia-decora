@@ -9,6 +9,14 @@ Site independente da loja Família Decora. Este repositório não depende do Bus
 - `scripts/validate-site.mjs`: validação da estrutura, referências, dados e funções essenciais.
 - `.github/workflows/deploy-pages.yml`: valida e publica o site no GitHub Pages.
 
+## Fluxo da vitrine para o cliente
+
+- O cliente escolhe a data no início do catálogo; o mesmo valor é sincronizado com o formulário do orçamento.
+- Cada cartão tem uma área de detalhes com descrição e disponibilidade da data selecionada.
+- Adicionar uma peça não abre mais o orçamento automaticamente: o cliente pode continuar navegando e usar o atalho flutuante ou o botão do cabeçalho quando terminar.
+- A seleção de produtos e quantidades fica somente no armazenamento local do navegador do visitante. Nome, telefone e informações do evento não são persistidos pelo site.
+- A seleção pode permanecer no mesmo aparelho após fechar ou atualizar a página. Limpar a seleção remove esses itens do navegador.
+
 ## Como a agenda funciona sem outro serviço
 A área de gestão grava diretamente no arquivo `data/agenda.json`, usando a API oficial de conteúdo do GitHub. Não há Supabase, Firebase ou outro banco externo.
 

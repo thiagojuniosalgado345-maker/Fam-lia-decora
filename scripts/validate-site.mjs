@@ -86,7 +86,7 @@ if (!/name=["']robots["'] content=["']noindex,nofollow["']/.test(management)) {
   throw new Error("A página de demonstração da equipe deve manter a instrução noindex,nofollow.");
 }
 
-const storeRequiredIds = ["catalogEventDate", "productDetailsDialog", "productDetailsAdd"];
+const storeRequiredIds = ["catalogEventDate", "productDetailsDialog", "productDetailsAdd", "floatingQuote", "floatingQuoteCount"];
 const storeIds = new Set([...storeHtml.matchAll(/\bid=["']([^"']+)["']/g)].map(match => match[1]));
 const missingStoreIds = storeRequiredIds.filter(id => !storeIds.has(id));
 if (missingStoreIds.length) {

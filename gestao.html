@@ -88,10 +88,29 @@
     <p class="management-help">Cadastre cada tipo de peça e informe quantas unidades físicas a loja possui. A tabela mostra o reservado, o bloqueado e o saldo livre para o dia selecionado no calendário. Os itens iniciais são exemplos e precisam ser revisados antes de publicar a disponibilidade.</p>
     <form id="productForm" class="management-form">
       <label>Nome do produto<input name="name" required maxlength="80" placeholder="Ex.: Painel redondo rosé"></label>
-      <label>Categoria<select name="category"><option>Kits</option><option>Painéis</option><option>Móveis</option><option>Peças</option></select></label>
+      <label>Categoria<input name="category" type="text" list="productCategories" required maxlength="40" placeholder="Ex.: Vasos"></label>
+      <datalist id="productCategories">
+        <option value="Kits"></option><option value="Painéis"></option><option value="Móveis"></option>
+        <option value="Vasos"></option><option value="Bandejas"></option><option value="Suportes"></option>
+        <option value="Acessórios"></option><option value="Peças"></option><option value="Decoração"></option><option value="Outros"></option>
+      </datalist>
       <label>Quantidade física no estoque<input name="stock" type="number" min="1" max="100" value="1" required></label>
       <label>Etiqueta curta<input name="tag" maxlength="35" placeholder="Ex.: Novo tema"></label>
-      <label>URL da imagem<input name="image" type="url" placeholder="https://..."></label>
+      <div class="wide product-image-upload">
+        <label for="productImageFile">Foto do objeto, painel, vaso ou kit
+          <input id="productImageFile" type="file" accept="image/*">
+        </label>
+        <p class="management-help image-upload-help">Escolha uma foto da galeria ou tire uma foto pelo celular. Ela será otimizada e salva no catálogo quando você gravar o produto.</p>
+        <p class="management-help image-upload-status" id="productImageStatus" role="status" aria-live="polite">Nenhuma foto nova selecionada. Você também pode cadastrar o item e adicionar a foto depois.</p>
+        <div class="product-image-preview" id="productImagePreview" hidden>
+          <img id="productImagePreviewImage" alt="Prévia da foto do produto">
+          <div class="product-image-preview-copy">
+            <strong id="productImagePreviewTitle">Prévia da foto</strong>
+            <button class="button button-soft" id="clearProductImage" type="button" hidden>Cancelar foto selecionada</button>
+          </div>
+        </div>
+      </div>
+      <label class="wide">Ou informe um link de imagem HTTPS (opcional)<input name="image" type="url" placeholder="https://..."></label>
       <label class="wide">Descrição<input name="description" maxlength="180" required placeholder="Descreva o item para o cliente"></label>
       <div class="wide form-actions"><button class="button button-primary" id="saveProduct" type="submit">Salvar produto +</button><button class="button button-soft" id="cancelEdit" type="button" hidden>Cancelar edição</button><button class="button button-soft" id="restoreProducts" type="button">Restaurar catálogo de exemplo</button></div>
     </form>

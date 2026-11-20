@@ -15,6 +15,10 @@ let githubReady = false;
 let githubSaveInProgress = false;
 let publicDocument = null;
 let publishAvailability = false;
+let selectedProductImage = null;
+let selectedProductImagePreviewUrl = "";
+let selectedProductImageUploadedUrl = "";
+let productSubmissionInProgress = false;
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1519225421980-888cb4c1e12c?auto=format&fit=crop&w=900&q=80";
 const DEFAULT = [
   {id:"kit-pequeno",name:"Kit Pegue e Monte",category:"Kits",tag:"Kit para festa",description:"Uma seleção prática de peças para montar uma comemoração do seu jeito.",image:"https://images.unsplash.com/photo-1519225421980-888cb4c1e12c?auto=format&fit=crop&w=1000&q=85",stock:1},
@@ -81,6 +85,123 @@ function base64ToUtf8(value) {
   const binary = atob(String(value || "").replace(/\s/g, ""));
   const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
   return new TextDecoder().decode(bytes);
+}
+function showProductImagePreview(source, title, isNew = false) {
+  $("productImagePreviewImage").src = source;
+  $("productImagePreviewTitle").textContent = title;
+  $("productImagePreview").hidden = false;
+  $("clearProductImage").hidden = !isNew;
+}
+function clearSelectedProductImage() {
+  selectedProductImage = null;
+  selectedProductImageUploadedUrl = "";
+  if (selectedProductImagePreviewUrl) {
+    URL.revokeObjectURL(selectedProductImagePreviewUrl);
+    selectedProductImagePreviewUrl = "";
+  }
+  $("productImageFile").value = "";
+  const current = editingProductId ? getProduct(editingProductId) : null;
+  if (current) {
+    showProductImagePreview(current.image, "Foto atual do catálogo");
+    $("productImageStatus").textContent = "Esta é a foto atual. Escolha outra para substituí-la.";
+  } else {
+    $("productImagePreview").hidden = true;
+    $("productImagePreviewImage").removeAttribute("src");
+    $("clearProductImage").hidden = true;
+    $("productImageStatus").textContent = "Nenhuma foto nova selecionada. Você também pode cadastrar o item e adicionar a foto depois.";
+  }
+}
+async function decodeProductImage(file) {
+  if (typeof createImageBitmap === "function") {
+    try {
+      return await createImageBitmap(file);
+    } catch {
+      // Usa o carregamento tradicional do navegador como alternativa.
+    }
+  }
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(image);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Não consegui abrir esta foto. Tente uma imagem JPG, PNG ou WebP."));
+    };
+    image.src = objectUrl;
+  });
+}
+async function optimizeProductImage(file) {
+  if (!file || !String(file.type || "").startsWith("image/")) {
+    throw new Error("Escolha um arquivo de imagem.");
+  }
+  if (file.size > 12 * 1024 * 1024) {
+    throw new Error("A foto original deve ter até 12 MB. Escolha uma versão menor.");
+  }
+  let decoded;
+  try {
+    decoded = await decodeProductImage(file);
+    const width = decoded.width || decoded.naturalWidth;
+    const height = decoded.height || decoded.naturalHeight;
+    if (!width || !height) throw new Error("A foto não possui dimensões válidas.");
+    const scale = Math.min(1, 1800 / Math.max(width, height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(width * scale));
+    canvas.height = Math.max(1, Math.round(height * scale));
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Não foi possível preparar a foto neste navegador.");
+    context.drawImage(decoded, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/webp", 0.84));
+    if (!blob || !blob.type.startsWith("image/")) {
+      throw new Error("Não foi possível otimizar esta foto. Tente salvar em JPG, PNG ou WebP.");
+    }
+    if (blob.size > 5 * 1024 * 1024) {
+      throw new Error("A foto ficou muito grande mesmo após a otimização. Escolha uma imagem mais leve.");
+    }
+    const extension = blob.type === "image/webp" ? "webp" : blob.type === "image/jpeg" ? "jpg" : "png";
+    return {blob,extension};
+  } catch (error) {
+    if (error instanceof Error) throw error;
+    throw new Error("Não foi possível processar esta foto.");
+  } finally {
+    if (decoded && typeof decoded.close === "function") decoded.close();
+  }
+}
+async function uploadProductImage(file, productId) {
+  if (!githubReady || !githubToken) {
+    throw new Error("Conecte a agenda ao GitHub antes de enviar fotos.");
+  }
+  $("productImageStatus").textContent = "Otimizando a foto e removendo os metadados do arquivo...";
+  const optimized = await optimizeProductImage(file);
+  const filename = String(productId).replace(/[^a-zA-Z0-9_-]/g, "") + "-" + Date.now() + "." + optimized.extension;
+  const path = "assets/products/" + filename;
+  const endpoint = "https://api.github.com/repos/" + GITHUB_REPOSITORY + "/contents/" + path;
+  $("productImageStatus").textContent = "Enviando a foto para o catálogo no GitHub...";
+  const response = await fetch(endpoint, {
+    method:"PUT",
+    headers:{
+      "Accept":"application/vnd.github+json",
+      "Authorization":"Bearer " + githubToken,
+      "X-GitHub-Api-Version":"2022-11-28",
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({
+      message:"Adicionar foto ao catálogo da Família Decora",
+      content:utf8BytesToBase64(new Uint8Array(await optimized.blob.arrayBuffer())),
+      branch:"main"
+    })
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.content || !result.content.path) {
+    if (response.status === 401 || response.status === 403) {
+      throw new Error("O GitHub recusou o envio da foto. Confira se o token tem Contents: Read and write neste repositório.");
+    }
+    throw new Error("Não foi possível enviar a foto ao GitHub (HTTP " + response.status + "). " + String(result.message || ""));
+  }
+  $("productImageStatus").textContent = "Foto enviada. Finalizando o cadastro do produto...";
+  return "https://raw.githubusercontent.com/" + GITHUB_REPOSITORY + "/main/" + result.content.path.split("/").map(encodeURIComponent).join("/");
 }
 async function fetchGithubDocument() {
   const response = await fetch(GITHUB_API_URL, {
@@ -758,6 +879,8 @@ function editProduct(id) {
   form.elements.tag.value = product.tag;
   form.elements.image.value = product.image;
   form.elements.description.value = product.description;
+  clearSelectedProductImage();
+  $("productImageStatus").textContent = "Esta é a foto atual. Escolha outra para substituí-la.";
   $("saveProduct").textContent = "Salvar alterações";
   $("cancelEdit").hidden = false;
   form.scrollIntoView({behavior:"smooth", block:"center"});
@@ -767,7 +890,9 @@ function resetProductForm() {
   editingProductId = null;
   $("productForm").reset();
   $("productForm").elements.stock.value = "1";
+  clearSelectedProductImage();
   $("saveProduct").textContent = "Salvar produto +";
+  $("saveProduct").disabled = false;
   $("cancelEdit").hidden = true;
 }
 function resetEventForm() {
@@ -854,16 +979,25 @@ $("publishAvailability").addEventListener("change", async event => {
 });
 $("productForm").addEventListener("submit", async event => {
   event.preventDefault();
-  const data = new FormData(event.currentTarget);
+  if (productSubmissionInProgress) return;
+  const form = event.currentTarget;
+  const data = new FormData(form);
   const stock = Number(data.get("stock"));
   const rawImage = String(data.get("image") || "").trim();
-  const image = rawImage ? safeImage(rawImage) : FALLBACK_IMAGE;
+  const fileSelected = Boolean(selectedProductImage);
+  const typedImage = fileSelected ? FALLBACK_IMAGE : rawImage ? safeImage(rawImage) : FALLBACK_IMAGE;
   if (!Number.isInteger(stock) || stock < 1 || stock > 100) {
     alert("Informe uma quantidade física entre 1 e 100.");
     return;
   }
-  if (!image) {
-    alert("Informe uma URL de imagem HTTPS válida.");
+  if (!typedImage) {
+    alert("Informe um link HTTPS válido ou escolha uma foto do dispositivo.");
+    return;
+  }
+  if (fileSelected && (!githubReady || !githubToken)) {
+    alert("Conecte a agenda ao GitHub antes de enviar fotos.");
+    $("githubConnectionTitle").scrollIntoView({behavior:"smooth",block:"center"});
+    $("githubToken").focus();
     return;
   }
   const id = editingProductId || randomId("produto");
@@ -874,7 +1008,7 @@ $("productForm").addEventListener("submit", async event => {
     stock,
     tag: data.get("tag"),
     description: data.get("description"),
-    image
+    image:typedImage
   });
   if (!product) {
     alert("Confira os campos do produto. Nome, categoria, descrição e estoque são obrigatórios.");
@@ -884,16 +1018,69 @@ $("productForm").addEventListener("submit", async event => {
     alert("Não é possível reduzir o estoque para " + stock + ". Existem até " + maximumUsedQuantity(id) + " unidade(s) reservada(s) ou bloqueada(s) simultaneamente.");
     return;
   }
+
   const wasEditing = Boolean(editingProductId);
-  const nextProducts = wasEditing
-    ? products.map(item => item.id === editingProductId ? product : item)
-    : [...products, product];
-  if (!await writeStorage(PRODUCT_KEY, nextProducts, wasEditing ? "Produto atualizado." : "Produto cadastrado.")) return;
-  products = nextProducts;
-  resetProductForm();
-  renderAll();
-  
+  const saveButton = $("saveProduct");
+  productSubmissionInProgress = true;
+  saveButton.disabled = true;
+  saveButton.textContent = fileSelected ? "Enviando foto e salvando..." : "Salvando produto...";
+  try {
+    if (fileSelected) {
+      if (!selectedProductImageUploadedUrl) {
+        selectedProductImageUploadedUrl = await uploadProductImage(selectedProductImage,id);
+      }
+      product.image = selectedProductImageUploadedUrl;
+    }
+    const nextProducts = wasEditing
+      ? products.map(item => item.id === editingProductId ? product : item)
+      : [...products,product];
+    const saved = await writeStorage(
+      PRODUCT_KEY,
+      nextProducts,
+      wasEditing ? "Produto atualizado com foto." : "Produto cadastrado com foto."
+    );
+    if (!saved) {
+      if (selectedProductImageUploadedUrl) {
+        $("productImageStatus").textContent = "A foto já foi enviada. Atualize a agenda do GitHub e tente salvar o produto novamente.";
+      }
+      return;
+    }
+    products = nextProducts;
+    resetProductForm();
+    renderAll();
+  } catch (error) {
+    $("productImageStatus").textContent = error.message || "Não foi possível enviar a foto.";
+    alert(error.message || "Não foi possível salvar o produto.");
+  } finally {
+    productSubmissionInProgress = false;
+    saveButton.disabled = false;
+    saveButton.textContent = editingProductId ? "Salvar alterações" : "Salvar produto +";
+  }
 });
+$("productImageFile").addEventListener("change", event => {
+  const file = event.target.files && event.target.files[0];
+  if (!file) {
+    clearSelectedProductImage();
+    return;
+  }
+  if (!String(file.type || "").startsWith("image/")) {
+    alert("Escolha um arquivo de imagem.");
+    clearSelectedProductImage();
+    return;
+  }
+  if (file.size > 12 * 1024 * 1024) {
+    alert("A foto original deve ter até 12 MB.");
+    clearSelectedProductImage();
+    return;
+  }
+  selectedProductImage = file;
+  selectedProductImageUploadedUrl = "";
+  if (selectedProductImagePreviewUrl) URL.revokeObjectURL(selectedProductImagePreviewUrl);
+  selectedProductImagePreviewUrl = URL.createObjectURL(file);
+  showProductImagePreview(selectedProductImagePreviewUrl,"Prévia da nova foto",true);
+  $("productImageStatus").textContent = "Foto selecionada. Ela será otimizada e enviada ao GitHub quando você salvar o produto.";
+});
+$("clearProductImage").addEventListener("click",clearSelectedProductImage);
 $("cancelEdit").addEventListener("click", resetProductForm);
 $("restoreProducts").addEventListener("click", async () => {
   if (events.length || unavailable.length) {

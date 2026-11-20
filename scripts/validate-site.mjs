@@ -96,6 +96,13 @@ const adminRequiredIds = [
   "unavailableForm",
   "unavailableList",
   "exportCatalog",
+  "productCategories",
+  "productImageFile",
+  "productImageStatus",
+  "productImagePreview",
+  "productImagePreviewImage",
+  "productImagePreviewTitle",
+  "clearProductImage",
   "githubToken",
   "agendaPassphrase",
   "publishAvailability",
@@ -126,7 +133,11 @@ for (const requiredFeature of [
   "AES-GCM",
   "PBKDF2-SHA-256",
   "CRYPTO_ITERATIONS",
-  "publishAvailability"
+  "publishAvailability",
+  "optimizeProductImage",
+  "uploadProductImage",
+  "assets/products/",
+  "productImageFile"
 ]) {
   if (!managementScript.includes(requiredFeature)) {
     throw new Error("Funcionalidade da agenda/estoque/GitHub ausente: " + requiredFeature);
@@ -185,4 +196,8 @@ if (dataFile.initialized === false && dataFile.availability.enabled === true) {
   throw new Error("A disponibilidade pública não pode ser ativada antes da inicialização da agenda.");
 }
 
-console.log("Validação final concluída: loja, privacidade, criptografia, GitHub, catálogo e disponibilidade pública.");
+const publishWorkflow = readFileSync(".github/workflows/deploy-pages.yml", "utf8");
+if (!publishWorkflow.includes("cp -a assets/. _site/assets/")) {
+  throw new Error("A publicação precisa copiar todos os arquivos de assets, incluindo as fotos enviadas pelo painel.");
+}
+console.log("Validação final concluída: loja, privacidade, criptografia, GitHub, catálogo, fotos e disponibilidade pública.");

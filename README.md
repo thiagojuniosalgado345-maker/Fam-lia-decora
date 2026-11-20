@@ -22,6 +22,18 @@ A área de gestão grava diretamente no arquivo `data/agenda.json`, usando a API
 
 A primeira conexão pode oferecer a migração de produtos, festas e bloqueios que estavam salvos no armazenamento local deste navegador. Exporte uma cópia completa antes de migrar ou restaurar dados importantes.
 
+## Adicionar fotos diretamente pelo painel
+
+A dona da loja pode cadastrar uma peça e enviar sua própria foto sem abrir o GitHub separadamente:
+
+1. Abra a área de gestão, conecte ao GitHub e carregue a agenda.
+2. Em **Produtos e quantidade em estoque**, preencha o nome, categoria (por exemplo: Vasos, Painéis, Móveis, Bandejas ou Kits), estoque e descrição.
+3. Toque em **Foto do objeto, painel, vaso ou kit** e escolha uma imagem da galeria ou tire uma foto pelo celular.
+4. Confira a prévia e toque em **Salvar produto**. A foto é redimensionada para no máximo 1.800 px, convertida para WebP quando o navegador suporta esse formato e enviada para `assets/products/` no GitHub. A imagem é vinculada ao produto no catálogo e publicada junto com o site.
+5. A foto original pode ter até 12 MB; o arquivo otimizado precisa ficar abaixo de 5 MB. A conversão por canvas remove metadados como localização GPS do arquivo original.
+
+As fotos do catálogo são públicas, pois o repositório e a vitrine são públicos. Envie somente imagens dos produtos da loja, sem pessoas, documentos, endereços ou outros dados privados. Ao substituir uma foto, o arquivo anterior permanece no repositório como histórico; ele não é apagado automaticamente.
+
 ## O que aparece para os visitantes
 O site GitHub Pages e o arquivo de dados publicado são acessíveis publicamente. Por isso, o arquivo publicado contém apenas:
 - produtos, imagens, descrições e quantidade física cadastrada;

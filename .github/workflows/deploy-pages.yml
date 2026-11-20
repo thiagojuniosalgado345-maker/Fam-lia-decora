@@ -36,7 +36,7 @@ jobs:
         run: |
           mkdir -p _site/assets _site/data
           cp index.html style.css app.js gestao.html gestao.css gestao.js .nojekyll _site/
-          cp assets/logo-familia-decora.webp _site/assets/
+          cp -a assets/. _site/assets/
           cp data/agenda.json _site/data/
       - name: Publicar artefato do site
         uses: actions/upload-pages-artifact@v5.0.0

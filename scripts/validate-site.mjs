@@ -147,12 +147,17 @@ for (const requiredFeature of [
   "uploadProductImage",
   "assets/products/",
   "productImageFile",
-  "productAdminSearch",
-  "inventory-product-name",
-  "management-shortcuts"
+  "productAdminSearch"
 ]) {
   if (!managementScript.includes(requiredFeature)) {
     throw new Error("Funcionalidade da agenda/estoque/GitHub ausente: " + requiredFeature);
+  }
+}
+
+const managementStyles = readFileSync("gestao.css", "utf8");
+for (const requiredStyle of ["management-shortcuts", "inventory-product-name"]) {
+  if (!managementStyles.includes(requiredStyle)) {
+    throw new Error("Melhoria visual do painel ausente: " + requiredStyle);
   }
 }
 

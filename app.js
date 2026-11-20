@@ -199,8 +199,8 @@ function openProductDetails(id) {
   $("productDetailsTag").textContent = product.tag || product.category;
   $("productDetailsName").textContent = product.name;
   $("productDetailsDescription").textContent = product.description;
-  updateProductDetails();
   $("productDetailsDialog").showModal();
+  updateProductDetails();
 }
 function addItem(id) {
   const product = products.find(item => item.id === id);

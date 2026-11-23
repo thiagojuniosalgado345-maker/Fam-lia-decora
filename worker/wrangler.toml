@@ -7,5 +7,5 @@ workers_dev = true
 GITHUB_REPOSITORY = "thiagojuniosalgado345-maker/Fam-lia-decora"
 GITHUB_BRANCH = "main"
 GITHUB_APP_ID = "PREENCHER_ID_DO_GITHUB_APP"
-ADMIN_EMAIL = "PREENCHER_EMAIL_AUTORIZADO"
+# O e-mail autorizado é cadastrado como Secret ADMIN_EMAIL, nunca neste arquivo.
 ALLOWED_ORIGIN = "https://thiagojuniosalgado345-maker.github.io"

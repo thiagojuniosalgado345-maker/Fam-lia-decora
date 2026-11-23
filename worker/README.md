@@ -17,7 +17,7 @@ O Worker intermedia o painel e o GitHub. O Cloudflare Access autentica a dona da
 
 1. Crie ou acesse a conta Cloudflare.
 2. Instale Node.js e abra um terminal dentro da pasta `worker` deste repositório.
-3. Edite `wrangler.toml`: preencha `GITHUB_APP_ID` e `ADMIN_EMAIL` com o e-mail exato autorizado da dona da loja.
+3. Edite `wrangler.toml`: preencha somente `GITHUB_APP_ID`. O e-mail autorizado será cadastrado como Secret `ADMIN_EMAIL`, para não ficar exposto no repositório.
 4. Execute `npx wrangler login`.
 5. Cadastre os Secrets. O primeiro recebe o PEM integral da chave privada do GitHub App. Gere as outras duas chaves aleatoriamente no computador:
    - `SESSION_SIGNING_KEY`: resultado de `openssl rand -hex 32`.
@@ -25,11 +25,12 @@ O Worker intermedia o painel e o GitHub. O Cloudflare Access autentica a dona da
 
 ```bash
 cat caminho/para/chave-privada.pem | npx wrangler secret put GITHUB_APP_PRIVATE_KEY
-openssl rand -hex 32 | npx wrangler secret put SESSION_SIGNING_KEY
-openssl rand -base64 32 | npx wrangler secret put AGENDA_ENCRYPTION_KEY
+npx wrangler secret put SESSION_SIGNING_KEY
+npx wrangler secret put AGENDA_ENCRYPTION_KEY
+npx wrangler secret put ADMIN_EMAIL
 ```
 
-Não coloque esses valores no GitHub, em mensagens ou em `wrangler.toml`.
+O Wrangler solicitará os valores no terminal. Para `SESSION_SIGNING_KEY`, informe uma sequência aleatória longa; para `AGENDA_ENCRYPTION_KEY`, informe uma chave aleatória Base64 de 32 bytes (por exemplo, gerada com `openssl rand -base64 32`). Para `ADMIN_EMAIL`, informe o endereço exato liberado na política do Access. Não coloque nenhum desses valores no GitHub, em mensagens ou em `wrangler.toml`.
 
 6. Publique:
 ```bash

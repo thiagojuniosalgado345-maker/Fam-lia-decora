@@ -24,9 +24,9 @@ O Worker intermedia o painel e o GitHub. O Cloudflare Access autentica a dona da
    - `AGENDA_ENCRYPTION_KEY`: resultado de `openssl rand -base64 32` (Base64 de 32 bytes).
 
 ```bash
-npx wrangler secret put GITHUB_APP_PRIVATE_KEY
-npx wrangler secret put SESSION_SIGNING_KEY
-npx wrangler secret put AGENDA_ENCRYPTION_KEY
+cat caminho/para/chave-privada.pem | npx wrangler secret put GITHUB_APP_PRIVATE_KEY
+openssl rand -hex 32 | npx wrangler secret put SESSION_SIGNING_KEY
+openssl rand -base64 32 | npx wrangler secret put AGENDA_ENCRYPTION_KEY
 ```
 
 Não coloque esses valores no GitHub, em mensagens ou em `wrangler.toml`.
@@ -51,7 +51,7 @@ O PIN é de uso único e expira em 10 minutos. Endereços não autorizados não 
 ## 4. Ligar o painel ao Worker
 
 1. Edite `API_BASE_URL` no início de `gestao.js` e substitua pelo endereço do Worker, sem barra no final.
-2. Envie as alterações para a branch `main) e aguarde o GitHub Actions publicar o site.
+2. Envie as alterações para a branch `main` e aguarde o GitHub Actions publicar o site.
 3. Abra a gestão e clique em **Entrar com e-mail**. A janela do Cloudflare pedirá o e-mail e o PIN; após confirmar, ela retorna ao painel.
 
 A sessão dura até 8 horas e fica no armazenamento de sessão daquela aba. Os tokens de instalação do GitHub App expiram em uma hora e são renovados pelo Worker.

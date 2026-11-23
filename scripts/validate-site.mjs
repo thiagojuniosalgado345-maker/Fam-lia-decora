@@ -170,7 +170,6 @@ for (const requiredFeature of [
   "publishAvailability",
   "optimizeProductImage",
   "uploadProductImage",
-  "assets/products/",
   "productImageFile",
   "productAdminSearch",
   "setupInstallableApp",
@@ -243,7 +242,7 @@ if (dataFile.initialized === false && dataFile.availability.enabled === true) {
 }
 
 const workerScript = readFileSync("worker/index.js", "utf8");
-for (const feature of ["auth/complete", "ctx.access", "AGENDA_ENCRYPTION_KEY", "SESSION_SIGNING_KEY", "createInstallationToken", "AES-GCM"]) {
+for (const feature of ["auth/complete", "ctx.access", "AGENDA_ENCRYPTION_KEY", "SESSION_SIGNING_KEY", "createInstallationToken", "AES-GCM", "assets/products/"]) {
   if (!workerScript.includes(feature)) throw new Error("Funcionalidade do Worker ausente: " + feature);
 }
 const workerConfig = readFileSync("worker/wrangler.toml", "utf8");

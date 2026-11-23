@@ -17,6 +17,16 @@ Site independente da loja Família Decora. Este repositório não depende do Bus
 - A seleção de produtos e quantidades fica somente no armazenamento local do navegador do visitante. Nome, telefone e informações do evento não são persistidos pelo site.
 - A seleção pode permanecer no mesmo aparelho após fechar ou atualizar a página. Limpar a seleção remove esses itens do navegador.
 
+## Aplicativo instalável do painel de gestão
+
+O painel pode ser adicionado à tela inicial do Android, iPhone/iPad ou computador como um aplicativo da web (PWA). O manifesto `manifest-gestao.webmanifest` abre diretamente `gestao.html` em modo independente. O painel instalado usa a mesma agenda, o mesmo catálogo e o mesmo repositório GitHub do site.
+
+- Android: abra o painel no Chrome e use **Instalar app** ou **Adicionar à tela inicial** no menu.
+- iPhone/iPad: abra o endereço no Safari, toque em **Compartilhar → Adicionar à Tela de Início** e ative **Abrir como App** quando disponível.
+- Computador: use o ícone de instalação do Chrome/Edge ou a opção correspondente no menu do navegador.
+
+A instalação é um atalho de aplicativo, não um aplicativo nativo distribuído pela Play Store/App Store. É necessário ter internet para consultar e salvar agenda, estoque e fotos no GitHub. Não habilite gravações offline: isso poderia deixar a equipe trabalhando com estoque desatualizado.
+
 ## Como a agenda funciona sem outro serviço
 A área de gestão grava diretamente no arquivo `data/agenda.json`, usando a API oficial de conteúdo do GitHub. Não há Supabase, Firebase ou outro banco externo.
 

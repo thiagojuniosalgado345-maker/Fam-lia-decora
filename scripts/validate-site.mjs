@@ -8,7 +8,10 @@ const required = [
   "gestao.css",
   "gestao.js",
   "data/agenda.json",
-  "assets/logo-familia-decora.webp"
+  "assets/logo-familia-decora.webp",
+  "manifest-gestao.webmanifest",
+  "assets/gestao-icon-192.png",
+  "assets/gestao-icon-512.png"
 ];
 
 for (const file of required) {
@@ -119,12 +122,34 @@ const adminRequiredIds = [
   "exportAgenda",
   "importBackup",
   "productAdminSearch",
-  "productVisibleTotal"
+  "productVisibleTotal",
+  "installApp",
+  "appInstallStatus",
+  "installHelpDialog",
+  "installHelpIntro",
+  "androidInstallSteps",
+  "iosInstallSteps",
+  "desktopInstallSteps",
+  "genericInstallSteps",
+  "closeInstallHelp",
+  "closeInstallHelpAction"
 ];
 const adminIds = new Set([...management.matchAll(/\bid=["']([^"']+)["']/g)].map(match => match[1]));
 const missingAdminIds = adminRequiredIds.filter(id => !adminIds.has(id));
 if (missingAdminIds.length) {
   throw new Error("Painel de gestão sem elementos da agenda/estoque: " + missingAdminIds.join(", "));
+}
+
+const appManifest = JSON.parse(readFileSync("manifest-gestao.webmanifest", "utf8"));
+if (appManifest.display !== "standalone" || !appManifest.id || !appManifest.start_url ||
+    !appManifest.scope || !Array.isArray(appManifest.icons) ||
+    !appManifest.icons.some(icon => icon.sizes === "192x192") ||
+    !appManifest.icons.some(icon => icon.sizes === "512x512")) {
+  throw new Error("Manifesto do aplicativo de gestão inválido ou sem ícones 192/512.");
+}
+if (!management.includes('rel="manifest" href="manifest-gestao.webmanifest"') ||
+    !management.includes('rel="apple-touch-icon"')) {
+  throw new Error("O painel não está ligado ao manifesto e ao ícone da tela inicial.");
 }
 
 const managementScript = readFileSync("gestao.js", "utf8");
@@ -147,7 +172,11 @@ for (const requiredFeature of [
   "uploadProductImage",
   "assets/products/",
   "productImageFile",
-  "productAdminSearch"
+  "productAdminSearch",
+  "setupInstallableApp",
+  "beforeinstallprompt",
+  "appinstalled",
+  "installHelpDialog"
 ]) {
   if (!managementScript.includes(requiredFeature)) {
     throw new Error("Funcionalidade da agenda/estoque/GitHub ausente: " + requiredFeature);
@@ -214,6 +243,9 @@ if (dataFile.initialized === false && dataFile.availability.enabled === true) {
 }
 
 const publishWorkflow = readFileSync(".github/workflows/deploy-pages.yml", "utf8");
+if (!publishWorkflow.includes("manifest-gestao.webmanifest")) {
+  throw new Error("A publicação não está incluindo o manifesto do aplicativo de gestão.");
+}
 if (!publishWorkflow.includes("cp -a assets/. _site/assets/")) {
   throw new Error("A publicação precisa copiar todos os arquivos de assets, incluindo as fotos enviadas pelo painel.");
 }

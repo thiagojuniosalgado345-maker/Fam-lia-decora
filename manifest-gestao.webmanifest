@@ -1,0 +1,22 @@
+{
+  "id": "./gestao.html",
+  "name": "Família Decora — Gestão",
+  "short_name": "Gestão FD",
+  "description": "Agenda, estoque e cadastro de peças da Família Decora.",
+  "lang": "pt-BR",
+  "start_url": "./gestao.html?origem=aplicativo",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#fff7fa",
+  "theme_color": "#98536d",
+  "icons": [
+    {"src": "./assets/gestao-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "./assets/gestao-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"}
+  ],
+  "shortcuts": [
+    {"name": "Agenda de festas", "short_name": "Agenda", "description": "Abrir o calendário de festas.", "url": "./gestao.html#agenda"},
+    {"name": "Estoque e fotos", "short_name": "Estoque", "description": "Cadastrar peças e fotos.", "url": "./gestao.html#estoque"}
+  ]
+}

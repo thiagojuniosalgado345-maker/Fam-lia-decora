@@ -63,6 +63,95 @@ function readStorage(key, fallback) {
     return fallback;
   }
 }
+let deferredInstallPrompt = null;
+
+function showInstallHelp() {
+  const ua = navigator.userAgent || "";
+  const isIOS = /iPhone|iPad|iPod/i.test(ua) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const isAndroid = /Android/i.test(ua);
+  const ids = ["androidInstallSteps","iosInstallSteps","desktopInstallSteps","genericInstallSteps"];
+  ids.forEach(id => $(id).hidden = true);
+  const target = isIOS ? "iosInstallSteps" : isAndroid ? "androidInstallSteps" :
+    /Windows|Macintosh|Linux|CrOS/i.test(ua) ? "desktopInstallSteps" : "genericInstallSteps";
+  $(target).hidden = false;
+  $("installHelpIntro").textContent = isIOS
+    ? "No iPhone ou iPad, adicione o painel à tela inicial pelo Safari."
+    : isAndroid
+      ? "No Android, use o menu do Chrome para instalar o atalho do painel."
+      : "Use o recurso de instalação oferecido pelo navegador para criar o atalho do painel.";
+  $("installHelpDialog").showModal();
+}
+
+function setupInstallableApp() {
+  const button = $("installApp");
+  const status = $("appInstallStatus");
+  const dialog = $("installHelpDialog");
+  const isStandalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+
+  if (isStandalone) {
+    button.hidden = true;
+    status.textContent = "Aplicativo instalado";
+  }
+
+  window.addEventListener("beforeinstallprompt", event => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    if (!isStandalone) {
+      button.textContent = "＋ Instalar aplicativo";
+      status.textContent = "Disponível para instalar";
+    }
+  });
+
+  window.addEventListener("appinstalled", () => {
+    deferredInstallPrompt = null;
+    button.hidden = true;
+    status.textContent = "Aplicativo instalado";
+  });
+
+  button.addEventListener("click", async () => {
+    if (typeof navigator.install === "function") {
+      try {
+        await navigator.install();
+        status.textContent = "Solicitação de instalação concluída.";
+        return;
+      } catch (error) {
+        if (error && error.name !== "AbortError") console.warn("Instalação não iniciada:", error);
+        showInstallHelp();
+        return;
+      }
+    }
+
+    if (deferredInstallPrompt) {
+      const promptEvent = deferredInstallPrompt;
+      deferredInstallPrompt = null;
+      try {
+        await promptEvent.prompt();
+        const choice = await promptEvent.userChoice;
+        if (choice && choice.outcome === "accepted") {
+          button.hidden = true;
+          status.textContent = "Aplicativo instalado";
+        } else {
+          button.textContent = "＋ Tentar instalar novamente";
+          status.textContent = "A instalação não foi concluída.";
+        }
+      } catch (error) {
+        console.warn("Não foi possível abrir a instalação:", error);
+        showInstallHelp();
+      }
+      return;
+    }
+
+    showInstallHelp();
+  });
+
+  $("closeInstallHelp").addEventListener("click", () => dialog.close());
+  $("closeInstallHelpAction").addEventListener("click", () => dialog.close());
+  dialog.addEventListener("click", event => {
+    if (event.target === dialog) dialog.close();
+  });
+}
+
 function setGithubStatus(message, state = "") {
   const element = $("githubStatus");
   if (!element) return;
@@ -962,6 +1051,7 @@ function renderAll() {
   renderUnavailable();
   renderEventItems();
 }
+setupInstallableApp();
 $("productAdminSearch").addEventListener("input", renderProducts);
 $("connectGithub").addEventListener("click", connectGithub);
 $("refreshGithub").addEventListener("click", refreshGithubData);

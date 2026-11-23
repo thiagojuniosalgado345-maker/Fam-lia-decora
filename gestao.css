@@ -204,3 +204,26 @@
 .inventory-product-name img{width:44px;height:44px;flex:0 0 44px;object-fit:cover;border-radius:8px;background:var(--pink-50)}
 .inventory-product-name strong{font-size:11px}
 @media(max-width:650px){.inventory-toolbar{align-items:stretch;flex-direction:column}.inventory-search{min-width:0}.management-shortcuts{margin-inline:-3px}}
+
+
+/* Acesso e instruções para instalar o painel como aplicativo */
+.management-header-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.install-app-button{white-space:nowrap}
+.app-install-status{font-size:9px;color:var(--rose-dark);font-weight:700}
+.install-help-dialog{width:min(520px,calc(100% - 24px));max-width:520px;max-height:88dvh;padding:0;border:0;border-radius:16px;box-shadow:0 24px 80px rgba(45,25,35,.26);overflow:auto}
+.install-help-dialog::backdrop{background:rgba(43,28,36,.55);backdrop-filter:blur(3px)}
+.install-help-content{padding:22px}
+.install-help-content .card-heading{align-items:flex-start}
+.install-help-content .card-heading h2{margin:4px 0;font:600 24px var(--serif);color:var(--ink)}
+.install-steps{padding-left:22px;margin:17px 0;display:grid;gap:12px;color:var(--ink);font-size:12px;line-height:1.65}
+.install-steps[hidden]{display:none}
+.install-steps li::marker{color:var(--rose)}
+.install-important{padding:12px 13px;background:#fff8e9;border:1px solid #efdcb6;border-radius:10px;color:#765a28;font-size:10px;line-height:1.7;margin:18px 0}
+.install-help-dialog :focus-visible{outline:3px solid #c68ba1;outline-offset:3px}
+@media(max-width:650px){
+  .management-header{align-items:flex-start;flex-direction:column}
+  .management-header-actions{width:100%;justify-content:flex-start}
+  .management-header-actions .button{flex:1 1 auto}
+  .app-install-status{width:100%}
+  .install-help-content{padding:18px}
+}

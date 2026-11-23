@@ -35,7 +35,7 @@ jobs:
       - name: Preparar somente os arquivos públicos do site
         run: |
           mkdir -p _site/assets _site/data
-          cp index.html style.css app.js gestao.html gestao.css gestao.js .nojekyll _site/
+          cp index.html style.css app.js gestao.html gestao.css gestao.js manifest-gestao.webmanifest .nojekyll _site/
           cp -a assets/. _site/assets/
           cp data/agenda.json _site/data/
       - name: Publicar artefato do site

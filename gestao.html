@@ -3,7 +3,14 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>Área da equipe | Família Decora</title>
+<meta name="theme-color" content="#98536d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Gestão FD">
+<link rel="manifest" href="manifest-gestao.webmanifest">
+<link rel="apple-touch-icon" href="assets/gestao-icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/gestao-icon-192.png">
+<title>Gestão Família Decora | Aplicativo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css"><link rel="stylesheet" href="gestao.css">
@@ -11,7 +18,14 @@
 <body>
 <div class="announcement">FAMÍLIA DECORA <span>—</span> AGENDA E CONTROLE DE PEÇAS</div>
 <main class="container management">
-  <div class="management-header"><div><div class="eyebrow"><span></span> Organização da loja</div><h1>Agenda da Família Decora</h1><p>Visualize festas por dia e acompanhe quais peças estão reservadas ou indisponíveis.</p></div><a class="button button-soft" href="index.html">← Voltar à loja</a></div>
+  <div class="management-header">
+    <div><div class="eyebrow"><span></span> Organização da loja</div><h1>Agenda da Família Decora</h1><p>Visualize festas por dia e acompanhe quais peças estão reservadas ou indisponíveis.</p></div>
+    <div class="management-header-actions">
+      <button class="button button-primary install-app-button" id="installApp" type="button">＋ Como instalar</button>
+      <span class="app-install-status" id="appInstallStatus" role="status" aria-live="polite"></span>
+      <a class="button button-soft" href="index.html">← Voltar à loja</a>
+    </div>
+  </div>
   <section class="management-card github-connection" aria-labelledby="githubConnectionTitle">
     <div class="card-heading"><div><span class="card-kicker">Conexão segura</span><h2 id="githubConnectionTitle">Sincronizar com o GitHub</h2></div><span class="github-status" id="githubStatus" role="status" aria-live="polite">Não conectado</span></div>
     <p class="management-help">O catálogo e a disponibilidade por data ficam publicados no arquivo do site. Os detalhes da agenda e os bloqueios são criptografados antes de serem enviados ao GitHub. A senha de criptografia e o token ficam somente na memória desta página e precisam ser informados novamente quando ela for reaberta.</p>
@@ -134,5 +148,38 @@
     <p class="github-security-note">A cópia completa é descriptografada para permitir restauração. Guarde o arquivo em local privado e não o envie por mensagens públicas.</p>
   </section>
 </main>
+<dialog class="install-help-dialog" id="installHelpDialog" aria-labelledby="installHelpTitle">
+  <div class="install-help-content">
+    <div class="card-heading">
+      <div><span class="card-kicker">Família Decora</span><h2 id="installHelpTitle">Instalar o aplicativo</h2></div>
+      <button class="calendar-nav" id="closeInstallHelp" type="button" aria-label="Fechar instruções">×</button>
+    </div>
+    <p id="installHelpIntro" class="management-help">Adicione a gestão à tela inicial para abrir diretamente como um aplicativo.</p>
+    <ol id="androidInstallSteps" class="install-steps" hidden>
+      <li>Abra este painel no <strong>Google Chrome</strong>.</li>
+      <li>Toque no menu de três pontinhos (⋮).</li>
+      <li>Escolha <strong>Instalar app</strong> ou <strong>Adicionar à tela inicial</strong>.</li>
+      <li>Confirme em <strong>Instalar</strong> ou <strong>Adicionar</strong>.</li>
+    </ol>
+    <ol id="iosInstallSteps" class="install-steps" hidden>
+      <li>Abra este endereço no <strong>Safari</strong> do iPhone ou iPad.</li>
+      <li>Toque em <strong>Compartilhar</strong>.</li>
+      <li>Escolha <strong>Adicionar à Tela de Início</strong>.</li>
+      <li>Ative <strong>Abrir como App</strong>, se essa opção aparecer, e toque em <strong>Adicionar</strong>.</li>
+    </ol>
+    <ol id="desktopInstallSteps" class="install-steps" hidden>
+      <li>Abra o painel no <strong>Google Chrome</strong> ou <strong>Microsoft Edge</strong>.</li>
+      <li>Use o ícone de instalação na barra de endereço ou abra o menu do navegador.</li>
+      <li>Selecione <strong>Instalar Família Decora — Gestão</strong> e confirme.</li>
+    </ol>
+    <ol id="genericInstallSteps" class="install-steps" hidden>
+      <li>Abra o menu do navegador.</li>
+      <li>Procure <strong>Instalar app</strong> ou <strong>Adicionar à tela inicial</strong>.</li>
+      <li>Confirme a adição do aplicativo.</li>
+    </ol>
+    <p class="install-important"><strong>Importante:</strong> o aplicativo precisa de internet para consultar e salvar agenda, estoque e fotos no GitHub. A instalação cria um acesso direto; não habilita edição offline.</p>
+    <div class="form-actions"><button class="button button-primary" id="closeInstallHelpAction" type="button">Entendi</button></div>
+  </div>
+</dialog>
 <script src="gestao.js"></script>
 </body></html>

@@ -5,11 +5,11 @@ const PRODUCT_KEY = "familia-decora-products-v2";
 const EVENT_KEY = "familia-decora-events-v1";
 const UNAVAILABLE_KEY = "familia-decora-unavailable-items-v1";
 const GITHUB_REPOSITORY = "thiagojuniosalgado345-maker/Fam-lia-decora";
-const GITHUB_DATA_PATH = "data/agenda.json";
-const GITHUB_API_URL = "https://api.github.com/repos/" + GITHUB_REPOSITORY + "/contents/" + GITHUB_DATA_PATH;
-const CRYPTO_ITERATIONS = 310000;
-let githubToken = "";
-let agendaPassphrase = "";
+// Substituir pela URL real após publicar worker/wrangler.toml no Cloudflare.
+const API_BASE_URL = "https://CONFIGURE-A-URL-DO-WORKER.workers.dev";
+const AUTH_STORAGE_KEY = "familia-decora-admin-session-v1";
+let sessionToken = "";
+try { sessionToken = sessionStorage.getItem(AUTH_STORAGE_KEY) || ""; } catch {}
 let githubSha = "";
 let githubReady = false;
 let githubSaveInProgress = false;
@@ -19,6 +19,7 @@ let selectedProductImage = null;
 let selectedProductImagePreviewUrl = "";
 let selectedProductImageUploadedUrl = "";
 let productSubmissionInProgress = false;
+let currentUserEmail = "";
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1519225421980-888cb4c1e12c?auto=format&fit=crop&w=900&q=80";
 const DEFAULT = [
   {id:"kit-pequeno",name:"Kit Pegue e Monte",category:"Kits",tag:"Kit para festa",description:"Uma seleção prática de peças para montar uma comemoração do seu jeito.",image:"https://images.unsplash.com/photo-1519225421980-888cb4c1e12c?auto=format&fit=crop&w=1000&q=85",stock:1},
@@ -158,9 +159,74 @@ function setGithubStatus(message, state = "") {
   element.textContent = message;
   element.className = "github-status" + (state ? " is-" + state : "");
   $("refreshGithub").disabled = !githubReady || githubSaveInProgress;
-  $("disconnectGithub").disabled = !githubReady && !githubToken;
+  $("disconnectGithub").disabled = !sessionToken;
   $("connectGithub").disabled = githubSaveInProgress;
   $("publishAvailability").disabled = !githubReady || githubSaveInProgress;
+}
+function configuredApiUrl() {
+  return /^https:\/\/[^/]+\.workers\.dev$/i.test(API_BASE_URL) && !API_BASE_URL.includes("CONFIGURE-A-URL");
+}
+async function apiRequest(path, options = {}) {
+  if (!configuredApiUrl()) throw new Error("A integração segura ainda não foi configurada. Consulte worker/README.md para publicar o serviço e informar sua URL.");
+  const headers = new Headers(options.headers || {});
+  if (sessionToken) headers.set("Authorization", "Bearer " + sessionToken);
+  const response = await fetch(API_BASE_URL + path, {...options,headers,mode:"cors",credentials:"omit",cache:"no-store"});
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) throw new Error("Sua sessão expirou ou não está autorizada. Entre novamente com o e-mail liberado da loja.");
+    throw new Error(result.error || "O serviço seguro não conseguiu concluir a operação (HTTP " + response.status + ").");
+  }
+  return result;
+}
+function clearAdminSession() {
+  sessionToken = "";
+  currentUserEmail = "";
+  githubReady = false;
+  githubSha = "";
+  try { sessionStorage.removeItem(AUTH_STORAGE_KEY); } catch {}
+}
+async function acceptAdminSession(token) {
+  sessionToken = String(token || "");
+  if (!sessionToken) throw new Error("A autenticação não retornou uma sessão válida.");
+  try { sessionStorage.setItem(AUTH_STORAGE_KEY,sessionToken); } catch {}
+  try {
+    const identity = await apiRequest("/api/me");
+    currentUserEmail = identity.email || "";
+    const remote = await fetchGithubDocument();
+    await loadGithubIntoPanel(remote.document,remote.sha);
+    renderAll();
+    setGithubStatus("Conectado como " + currentUserEmail,"connected");
+  } catch (error) {
+    clearAdminSession();
+    setGithubStatus("Não conectado");
+    throw error;
+  }
+}
+window.addEventListener("message",async event => {
+  if (!configuredApiUrl() || event.origin !== new URL(API_BASE_URL).origin ||
+      !event.data || event.data.type !== "FAMILIA_DECORA_AUTH" ||
+      typeof event.data.token !== "string") return;
+  try {
+    await acceptAdminSession(event.data.token);
+    alert("Acesso autorizado. A agenda e o estoque foram carregados.");
+  } catch (error) {
+    alert(error.message || "Não foi possível concluir o acesso.");
+  }
+});
+async function restoreAdminSession() {
+  if (!sessionToken) return;
+  setGithubStatus("Validando sessão…","saving");
+  try {
+    const identity = await apiRequest("/api/me");
+    currentUserEmail = identity.email || "";
+    const remote = await fetchGithubDocument();
+    await loadGithubIntoPanel(remote.document,remote.sha);
+    renderAll();
+    setGithubStatus("Conectado como " + currentUserEmail,"connected");
+  } catch {
+    clearAdminSession();
+    setGithubStatus("Entre com o e-mail autorizado");
+  }
 }
 function utf8ToBase64(value) {
   const bytes = new TextEncoder().encode(value);
@@ -259,129 +325,28 @@ async function optimizeProductImage(file) {
   }
 }
 async function uploadProductImage(file, productId) {
-  if (!githubReady || !githubToken) {
-    throw new Error("Conecte a agenda ao GitHub antes de enviar fotos.");
-  }
-  $("productImageStatus").textContent = "Otimizando a foto e removendo os metadados do arquivo...";
+  if (!githubReady || !sessionToken) throw new Error("Entre com o e-mail autorizado antes de enviar fotos.");
+  $("productImageStatus").textContent = "Otimizando a foto e removendo metadados...";
   const optimized = await optimizeProductImage(file);
-  const filename = String(productId).replace(/[^a-zA-Z0-9_-]/g, "") + "-" + Date.now() + "." + optimized.extension;
-  const path = "assets/products/" + filename;
-  const endpoint = "https://api.github.com/repos/" + GITHUB_REPOSITORY + "/contents/" + path;
-  $("productImageStatus").textContent = "Enviando a foto para o catálogo no GitHub...";
-  const response = await fetch(endpoint, {
-    method:"PUT",
-    headers:{
-      "Accept":"application/vnd.github+json",
-      "Authorization":"Bearer " + githubToken,
-      "X-GitHub-Api-Version":"2022-11-28",
-      "Content-Type":"application/json"
-    },
-    body:JSON.stringify({
-      message:"Adicionar foto ao catálogo da Família Decora",
-      content:utf8BytesToBase64(new Uint8Array(await optimized.blob.arrayBuffer())),
-      branch:"main"
-    })
-  });
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok || !result.content || !result.content.path) {
-    if (response.status === 401 || response.status === 403) {
-      throw new Error("O GitHub recusou o envio da foto. Confira se o token tem Contents: Read and write neste repositório.");
-    }
-    throw new Error("Não foi possível enviar a foto ao GitHub (HTTP " + response.status + "). " + String(result.message || ""));
-  }
-  $("productImageStatus").textContent = "Foto enviada. Finalizando o cadastro do produto...";
-  return "https://raw.githubusercontent.com/" + GITHUB_REPOSITORY + "/main/" + result.content.path.split("/").map(encodeURIComponent).join("/");
+  $("productImageStatus").textContent = "Enviando a foto ao catálogo...";
+  const result = await apiRequest("/api/images?productId=" + encodeURIComponent(productId) +
+    "&extension=" + encodeURIComponent(optimized.extension), {
+      method:"POST",headers:{"Content-Type":optimized.blob.type},body:optimized.blob
+    });
+  $("productImageStatus").textContent = "Foto enviada. Finalizando o cadastro...";
+  return result.imageUrl;
 }
 async function fetchGithubDocument() {
-  const response = await fetch(GITHUB_API_URL, {
-    method:"GET",
-    cache:"no-store",
-    headers:{
-      "Accept":"application/vnd.github+json",
-      "Authorization":"Bearer " + githubToken,
-      "X-GitHub-Api-Version":"2022-11-28"
-    }
-  });
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      throw new Error("O GitHub recusou o token. Confira se ele é Fine-grained, pertence à sua conta e tem Contents: Read and write neste repositório.");
-    }
-    throw new Error("Não foi possível ler o arquivo da agenda no GitHub (HTTP " + response.status + ").");
-  }
-  if (!result.content || !result.sha) throw new Error("O arquivo data/agenda.json está vazio ou em formato inesperado.");
-  const documentData = JSON.parse(base64ToUtf8(result.content));
-  if (documentData.schemaVersion !== 1 || !Array.isArray(documentData.products)) {
-    throw new Error("O arquivo de dados do GitHub não segue o formato esperado.");
-  }
-  return {document:documentData,sha:result.sha};
+  const result = await apiRequest("/api/data");
+  if (!result.document || !result.sha || result.document.schemaVersion !== 1 ||
+      !Array.isArray(result.document.products)) throw new Error("O serviço retornou dados em formato inesperado.");
+  return {document:result.document,sha:result.sha};
 }
-async function deriveAgendaKey(passphrase, salt) {
-  const material = await crypto.subtle.importKey(
-    "raw", new TextEncoder().encode(passphrase), "PBKDF2", false, ["deriveKey"]
-  );
-  return crypto.subtle.deriveKey(
-    {name:"PBKDF2",salt,iterations:CRYPTO_ITERATIONS,hash:"SHA-256"},
-    material,
-    {name:"AES-GCM",length:256},
-    false,
-    ["encrypt","decrypt"]
-  );
-}
-async function encryptPrivateAgenda(snapshot) {
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const key = await deriveAgendaKey(agendaPassphrase, salt);
-  const privateData = {
-    events:snapshot.events,
-    unavailable:snapshot.unavailable
-  };
-  const encrypted = await crypto.subtle.encrypt(
-    {name:"AES-GCM",iv},
-    key,
-    new TextEncoder().encode(JSON.stringify(privateData))
-  );
-  return {
-    version:1,
-    algorithm:"AES-256-GCM",
-    kdf:"PBKDF2-SHA-256",
-    iterations:CRYPTO_ITERATIONS,
-    salt:utf8BytesToBase64(salt),
-    iv:utf8BytesToBase64(iv),
-    ciphertext:utf8BytesToBase64(new Uint8Array(encrypted))
-  };
-}
-function utf8BytesToBase64(bytes) {
+function utf8ToBase64(value) {
+  const bytes = new TextEncoder().encode(value);
   let binary = "";
-  for (let offset = 0; offset < bytes.length; offset += 0x8000) {
-    binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
-  }
+  for (let offset=0; offset<bytes.length; offset+=0x8000) binary += String.fromCharCode(...bytes.subarray(offset,offset+0x8000));
   return btoa(binary);
-}
-function base64ToBytes(value) {
-  const binary = atob(String(value || ""));
-  return Uint8Array.from(binary, character => character.charCodeAt(0));
-}
-async function decryptPrivateAgenda(record) {
-  if (!record || record.version !== 1 || record.algorithm !== "AES-256-GCM" ||
-      record.kdf !== "PBKDF2-SHA-256" || record.iterations !== CRYPTO_ITERATIONS) {
-    throw new Error("O conteúdo criptografado da agenda não é compatível.");
-  }
-  try {
-    const key = await deriveAgendaKey(agendaPassphrase, base64ToBytes(record.salt));
-    const plain = await crypto.subtle.decrypt(
-      {name:"AES-GCM",iv:base64ToBytes(record.iv)},
-      key,
-      base64ToBytes(record.ciphertext)
-    );
-    const parsed = JSON.parse(new TextDecoder().decode(plain));
-    if (!Array.isArray(parsed.events) || !Array.isArray(parsed.unavailable)) {
-      throw new Error("Formato da agenda inválido.");
-    }
-    return parsed;
-  } catch {
-    throw new Error("Não foi possível abrir a agenda. A senha está incorreta ou o arquivo foi alterado.");
-  }
 }
 function datePlusDays(dateValue, amount) {
   const date = dateFromISO(dateValue);
@@ -432,62 +397,42 @@ function cleanSnapshot(snapshot) {
   }));
 }
 async function commitGithubSnapshot(snapshotValue, successMessage = "Alterações salvas no GitHub.") {
-  if (!githubToken || !agendaPassphrase || !githubSha) {
-    setGithubStatus("Conecte ao GitHub para salvar.");
+  if (!sessionToken || !githubSha) {
+    setGithubStatus("Entre com o e-mail autorizado para salvar.");
     return false;
   }
   if (githubSaveInProgress) return false;
   githubSaveInProgress = true;
-  setGithubStatus("Salvando no GitHub…","saving");
+  setGithubStatus("Salvando com segurança…","saving");
   const snapshot = cleanSnapshot(snapshotValue);
   try {
     const latest = await fetchGithubDocument();
-    if (latest.sha !== githubSha) {
-      throw new Error("O arquivo foi alterado no GitHub por outro acesso. Para evitar apagar dados, use Atualizar do GitHub; o painel não sobrescreveu a versão mais recente.");
-    }
+    if (latest.sha !== githubSha) throw new Error("A agenda foi alterada em outro acesso. Use Atualizar antes de salvar para não apagar mudanças recentes.");
     const nextDocument = {
-      schemaVersion:1,
-      initialized:true,
-      updatedAt:new Date().toISOString(),
-      products:snapshot.products,
-      availability:buildPublicAvailability(snapshot),
-      privateAgenda:await encryptPrivateAgenda(snapshot)
+      schemaVersion:1,initialized:true,updatedAt:new Date().toISOString(),
+      products:snapshot.products,availability:buildPublicAvailability(snapshot),
+      privateAgenda:{events:snapshot.events,unavailable:snapshot.unavailable}
     };
-    const response = await fetch(GITHUB_API_URL,{
-      method:"PUT",
-      headers:{
-        "Accept":"application/vnd.github+json",
-        "Authorization":"Bearer " + githubToken,
-        "X-GitHub-Api-Version":"2022-11-28",
-        "Content-Type":"application/json"
-      },
-      body:JSON.stringify({
-        message:"Atualizar agenda, estoque e disponibilidade da Família Decora",
-        content:utf8ToBase64(JSON.stringify(nextDocument,null,2)),
-        sha:githubSha
-      })
+    const result = await apiRequest("/api/data",{
+      method:"PUT",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({expectedSha:githubSha,document:nextDocument})
     });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok || !result.content || !result.content.sha) {
-      throw new Error(response.status === 409 || response.status === 422
-        ? "O GitHub identificou uma gravação concorrente. Atualize os dados antes de salvar novamente."
-        : "O GitHub não aceitou a gravação (HTTP " + response.status + "). Confira a permissão Contents: Read and write do token.");
-    }
-    githubSha = result.content.sha;
-    publicDocument = nextDocument;
-    setGithubStatus("Conectado · salvo às " + new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}),"connected");
-    if (successMessage) $("githubStatus").title = successMessage;
+    if (!result.sha) throw new Error("O serviço não confirmou a gravação.");
+    githubSha=result.sha;
+    publicDocument=nextDocument;
+    setGithubStatus("Conectado · salvo às "+new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}),"connected");
+    if (successMessage) $("githubStatus").title=successMessage;
     return true;
   } catch (error) {
-    setGithubStatus(githubReady ? "Falha ao salvar" : "Atualize e conecte novamente.");
-    alert(error.message || "Não foi possível salvar a agenda no GitHub.");
+    setGithubStatus(githubReady?"Falha ao salvar":"Entre novamente para continuar.");
+    alert(error.message || "Não foi possível salvar a agenda.");
     return false;
   } finally {
-    githubSaveInProgress = false;
-    $("refreshGithub").disabled = !githubReady;
-    $("disconnectGithub").disabled = !githubReady;
-    $("connectGithub").disabled = false;
-    $("publishAvailability").disabled = !githubReady;
+    githubSaveInProgress=false;
+    $("refreshGithub").disabled=!githubReady;
+    $("disconnectGithub").disabled=!sessionToken;
+    $("connectGithub").disabled=false;
+    $("publishAvailability").disabled=!githubReady;
   }
 }
 async function writeStorage(key, value, successMessage = "") {
@@ -511,103 +456,64 @@ async function writeStorage(key, value, successMessage = "") {
   if (key === UNAVAILABLE_KEY) unavailable = value;
   return true;
 }
-async function loadGithubIntoPanel(documentData, sha) {
-  const remoteProducts = normalizeCatalog(documentData.products);
-  if (!remoteProducts || remoteProducts.length !== documentData.products.length) {
-    throw new Error("O catálogo publicado no arquivo de dados está inválido.");
-  }
-  products = remoteProducts;
-  publishAvailability = Boolean(documentData.availability && documentData.availability.enabled === true);
-  $("publishAvailability").checked = publishAvailability;
-  githubSha = sha;
-  publicDocument = documentData;
+async function loadGithubIntoPanel(documentData,sha) {
+  const remoteProducts=normalizeCatalog(documentData.products);
+  if (!remoteProducts || remoteProducts.length!==documentData.products.length) throw new Error("O catálogo publicado no arquivo de dados está inválido.");
+  products=remoteProducts;
+  publishAvailability=Boolean(documentData.availability&&documentData.availability.enabled===true);
+  $("publishAvailability").checked=publishAvailability;
+  githubSha=sha;
+  publicDocument=documentData;
   if (!documentData.privateAgenda) {
-    events = [];
-    unavailable = [];
-    githubReady = true;
-    const legacyHasData = legacySnapshot.events.length || legacySnapshot.unavailable.length ||
-      JSON.stringify(legacySnapshot.products) !== JSON.stringify(DEFAULT);
-    let initial = {products,events:[],unavailable:[]};
-    if (legacyHasData && confirm("Encontrei produtos, festas ou bloqueios salvos anteriormente neste navegador. Deseja migrar esses dados para o GitHub agora?")) {
-      initial = legacySnapshot;
+    events=[];unavailable=[];githubReady=true;
+    const legacyHasData=legacySnapshot.events.length||legacySnapshot.unavailable.length||JSON.stringify(legacySnapshot.products)!==JSON.stringify(DEFAULT);
+    if (legacyHasData && confirm("Encontrei dados antigos salvos somente neste navegador. Deseja migrar produtos, festas e bloqueios para o armazenamento seguro agora?")) {
+      const saved=await commitGithubSnapshot(legacySnapshot,"Dados antigos migrados.");
+      if (!saved) throw new Error("Não foi possível migrar os dados antigos.");
+      products=legacySnapshot.products;events=legacySnapshot.events;unavailable=legacySnapshot.unavailable;
     }
-    const saved = await commitGithubSnapshot(initial,"Agenda inicializada.");
-    if (!saved) throw new Error("Não foi possível inicializar a agenda no GitHub.");
-    products = initial.products;
-    events = initial.events;
-    unavailable = initial.unavailable;
     return;
   }
-  const privateData = await decryptPrivateAgenda(documentData.privateAgenda);
-  const normalizedEvents = normalizeEvents(privateData.events);
-  const normalizedUnavailable = normalizeUnavailable(privateData.unavailable);
-  if (normalizedEvents.length !== privateData.events.length ||
-      normalizedUnavailable.length !== privateData.unavailable.length) {
-    throw new Error("Há registros inválidos na agenda criptografada. Não carreguei os dados parcialmente.");
+  if (!Array.isArray(documentData.privateAgenda.events)||!Array.isArray(documentData.privateAgenda.unavailable)) throw new Error("A agenda privada tem formato antigo ou inválido.");
+  const normalizedEvents=normalizeEvents(documentData.privateAgenda.events);
+  const normalizedUnavailable=normalizeUnavailable(documentData.privateAgenda.unavailable);
+  if (normalizedEvents.length!==documentData.privateAgenda.events.length||normalizedUnavailable.length!==documentData.privateAgenda.unavailable.length) {
+    throw new Error("Há registros inválidos na agenda privada. Não carreguei os dados parcialmente.");
   }
-  events = normalizedEvents;
-  unavailable = normalizedUnavailable;
-  githubReady = true;
+  events=normalizedEvents;unavailable=normalizedUnavailable;githubReady=true;
 }
 async function connectGithub() {
-  const tokenField = $("githubToken");
-  const passField = $("agendaPassphrase");
-  const token = tokenField.value.trim();
-  const passphrase = passField.value;
-  if (!token) {
-    alert("Cole o token Fine-grained do GitHub.");
-    tokenField.focus();
+  if (!configuredApiUrl()) {
+    alert("A integração ainda não foi publicada. Primeiro configure o Cloudflare Worker conforme worker/README.md.");
     return;
   }
-  if (passphrase.length < 16) {
-    alert("Use uma senha de agenda com pelo menos 16 caracteres. Guarde-a: sem ela não será possível descriptografar a agenda.");
-    passField.focus();
+  const popup=window.open(API_BASE_URL+"/auth/complete","familiaDecoraLogin","popup,width=520,height=700,resizable=yes,scrollbars=yes");
+  if (!popup) {
+    alert("O navegador bloqueou a janela de acesso. Permita pop-ups para este site e tente novamente.");
     return;
   }
-  githubToken = token;
-  agendaPassphrase = passphrase;
-  setGithubStatus("Conectando…","saving");
-  try {
-    const remote = await fetchGithubDocument();
-    await loadGithubIntoPanel(remote.document,remote.sha);
-    tokenField.value = "";
-    passField.value = "";
-    renderAll();
-    setGithubStatus("Conectado ao GitHub","connected");
-  } catch (error) {
-    githubReady = false;
-    githubToken = "";
-    agendaPassphrase = "";
-    setGithubStatus("Não conectado");
-    alert(error.message || "Não foi possível conectar ao GitHub.");
-  }
+  setGithubStatus("Aguardando confirmação do e-mail…","saving");
 }
 async function refreshGithubData() {
-  if (!githubToken || !agendaPassphrase || !githubReady || githubSaveInProgress) return;
+  if (!sessionToken || !githubReady || githubSaveInProgress) return;
   try {
-    const remote = await fetchGithubDocument();
-    if (remote.sha === githubSha) {
-      setGithubStatus("Agenda já está atualizada","connected");
-      return;
-    }
+    const remote=await fetchGithubDocument();
+    if (remote.sha===githubSha) {setGithubStatus("Agenda já está atualizada","connected");return;}
     if (!confirm("Há uma versão mais recente no GitHub. Recarregar agora? O que estiver aberto neste painel será substituído pelos dados do GitHub.")) return;
     await loadGithubIntoPanel(remote.document,remote.sha);
     renderAll();
-    setGithubStatus("Agenda atualizada do GitHub","connected");
-  } catch (error) {
-    githubReady = false;
-    setGithubStatus("Reconecte para continuar.");
-    alert(error.message || "Não foi possível atualizar a agenda.");
+    setGithubStatus("Agenda atualizada","connected");
+  } catch(error) {
+    if (/sessão expirou|não está autorizada/i.test(error.message||"")) clearAdminSession();
+    setGithubStatus("Não foi possível atualizar");
+    alert(error.message||"Não foi possível atualizar a agenda.");
   }
 }
 function disconnectGithub() {
-  githubToken = "";
-  agendaPassphrase = "";
-  githubSha = "";
-  githubReady = false;
+  clearAdminSession();
   setGithubStatus("Desconectado");
+  renderAll();
 }
-
 function safeImage(value) {
   if (!value) return FALLBACK_IMAGE;
   try {
@@ -1052,6 +958,7 @@ function renderAll() {
   renderEventItems();
 }
 setupInstallableApp();
+void restoreAdminSession();
 $("productAdminSearch").addEventListener("input", renderProducts);
 $("connectGithub").addEventListener("click", connectGithub);
 $("refreshGithub").addEventListener("click", refreshGithubData);
@@ -1092,10 +999,10 @@ $("productForm").addEventListener("submit", async event => {
     alert("Informe um link HTTPS válido ou escolha uma foto do dispositivo.");
     return;
   }
-  if (fileSelected && (!githubReady || !githubToken)) {
-    alert("Conecte a agenda ao GitHub antes de enviar fotos.");
+  if (fileSelected && (!githubReady || !sessionToken)) {
+    alert("Entre com o e-mail autorizado antes de enviar fotos.");
     $("githubConnectionTitle").scrollIntoView({behavior:"smooth",block:"center"});
-    $("githubToken").focus();
+    $("connectGithub").focus();
     return;
   }
   const id = editingProductId || randomId("produto");
@@ -1424,7 +1331,7 @@ $("importBackup").addEventListener("change", async event => {
     events = previous.events;
     unavailable = previous.unavailable;
     if (conflict) throw new Error("A cópia excede o estoque de " + conflict.name + ". Ajuste as quantidades antes de restaurar.");
-    if (!githubReady) throw new Error("Conecte ao GitHub antes de restaurar a cópia.");
+    if (!githubReady) throw new Error("Entre com o e-mail autorizado antes de restaurar a cópia.");
     if (!confirm("Restaurar esta cópia completa? Ela substituirá o catálogo, a agenda e os bloqueios atuais no GitHub.")) return;
     const saved = await commitGithubSnapshot({products:nextProducts,events:nextEvents,unavailable:nextUnavailable},"Cópia completa restaurada.");
     if (saved) {

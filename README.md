@@ -27,24 +27,26 @@ O painel pode ser adicionado à tela inicial do Android, iPhone/iPad ou computad
 
 A instalação é um atalho de aplicativo, não um aplicativo nativo distribuído pela Play Store/App Store. É necessário ter internet para consultar e salvar agenda, estoque e fotos no GitHub. Não habilite gravações offline: isso poderia deixar a equipe trabalhando com estoque desatualizado.
 
-## Como a agenda funciona sem outro serviço
-A área de gestão grava diretamente no arquivo `data/agenda.json`, usando a API oficial de conteúdo do GitHub. Não há Supabase, Firebase ou outro banco externo.
+## Como funciona a agenda com login por e-mail
 
-1. Abra `gestao.html` no endereço publicado.
-2. Crie um token **Fine-grained** no GitHub, limitado ao repositório `Fam-lia-decora`, com a permissão **Contents: Read and write**. Não dê acesso a todos os repositórios.
-3. Informe o token e uma senha forte da agenda com pelo menos 16 caracteres.
-4. Confira e cadastre os produtos e o estoque físico. Só então marque **Publicar disponibilidade por data na loja**. A publicação começa desativada para evitar mostrar como disponível um estoque de exemplo ainda não conferido.
-5. A senha deriva uma chave com PBKDF2-SHA-256 (310.000 iterações); os detalhes de festas e bloqueios são criptografados com AES-256-GCM antes de o navegador enviar o arquivo ao GitHub.
-6. O token e a senha da agenda ficam somente na memória da página. Não são gravados no repositório nem no armazenamento do navegador. Ao fechar ou atualizar a página, será necessário informá-los novamente.
-7. O arquivo de dados é gravado com controle de versão do GitHub. Se outro acesso tiver atualizado o arquivo, o painel detecta a divergência e pede atualização para evitar sobrescrever a agenda mais nova.
+A vitrine pública continua consultando `data/agenda.json`, mas o painel não acessa mais o GitHub diretamente. A dona da loja autentica com um código enviado ao e-mail autorizado pelo Cloudflare Access. Depois do login, o painel recebe uma sessão curta e chama o Worker; o Worker cria tokens temporários de um GitHub App instalado somente neste repositório e realiza as gravações.
 
-A primeira conexão pode oferecer a migração de produtos, festas e bloqueios que estavam salvos no armazenamento local deste navegador. Exporte uma cópia completa antes de migrar ou restaurar dados importantes.
+- O e-mail precisa ser liberado na política do Cloudflare Access e também configurado como `ADMIN_EMAIL` no Worker.
+- O código enviado por e-mail é de uso único e expira em 10 minutos.
+- A sessão do painel dura até 8 horas e fica no armazenamento de sessão do navegador, não no repositório.
+- A chave privada do GitHub App, a chave de assinatura de sessão e a chave de criptografia da agenda ficam como Secrets do Worker, nunca no código público.
+- O Worker criptografa os detalhes privados das festas e dos bloqueios com AES-256-GCM antes de gravar o arquivo no GitHub.
+- O GitHub App deve ter somente a permissão `Contents: Read and write` e ser instalado apenas no repositório `Fam-lia-decora`.
+
+**Configuração obrigatória:** siga [worker/README.md](worker/README.md). O novo login só funciona depois que o Worker estiver publicado, o Cloudflare Access estiver protegendo a rota `/auth/complete` e a constante `API_BASE_URL` em `gestao.js` tiver a URL real do Worker.
+
+O arquivo atualmente versionado no GitHub contém `privateAgenda: null`, portanto não há dados privados criptografados nessa versão para converter. Dados que tenham ficado apenas no armazenamento local de outro navegador não migram automaticamente: exporte uma cópia completa no navegador antigo e importe-a no painel depois da configuração.
 
 ## Adicionar fotos diretamente pelo painel
 
 A dona da loja pode cadastrar uma peça e enviar sua própria foto sem abrir o GitHub separadamente:
 
-1. Abra a área de gestão, conecte ao GitHub e carregue a agenda.
+1. Abra a área de gestão e entre com o e-mail autorizado.
 2. Em **Produtos e quantidade em estoque**, preencha o nome, categoria (por exemplo: Vasos, Painéis, Móveis, Bandejas ou Kits), estoque e descrição.
 3. Toque em **Foto do objeto, painel, vaso ou kit** e escolha uma imagem da galeria ou tire uma foto pelo celular.
 4. Confira a prévia e toque em **Salvar produto**. A foto é redimensionada para no máximo 1.800 px, convertida para WebP quando o navegador suporta esse formato e enviada para `assets/products/` no GitHub. A imagem é vinculada ao produto no catálogo e publicada junto com o site.
@@ -59,7 +61,7 @@ O site GitHub Pages e o arquivo de dados publicado são acessíveis publicamente
 
 Os detalhes de eventos, códigos de pedidos, observações e bloqueios manuais ficam dentro do campo criptografado `privateAgenda`. O catálogo e os números de disponibilidade por data são públicos; visitantes podem consultar a quantidade livre quando escolhem a data no orçamento. A vitrine atualiza os dados periodicamente e também após recarregar.
 
-Mesmo criptografados, use códigos internos de pedido (por exemplo, `FD-001`) em vez de nomes completos. Não registre telefone, CPF, endereço residencial, dados de pagamento ou qualquer informação sensível na agenda ou nas observações. A senha deve ser longa, exclusiva e guardada em local seguro. Sem ela, não será possível abrir a parte privada do arquivo.
+Mesmo criptografados, use códigos internos de pedido (por exemplo, `FD-001`) em vez de nomes completos. Não registre telefone, CPF, endereço residencial, dados de pagamento ou qualquer informação sensível na agenda ou nas observações. A chave de criptografia fica no Secret do Worker. Guarde uma cópia de recuperação dessa chave em local privado; sem ela, a agenda privada não poderá ser aberta.
 
 ## Regras do estoque e da agenda
 - É possível cadastrar várias festas na mesma data.
@@ -82,7 +84,7 @@ Use **Baixar cópia completa da agenda** antes de mudanças importantes. O arqui
 ## Limitações importantes
 Este arranjo usa o próprio GitHub como armazenamento de arquivos, não é um banco transacional. A checagem de versão ajuda a evitar que um painel sobrescreva uma alteração recente, mas não oferece garantias de um sistema de reservas de grande volume com bloqueios transacionais simultâneos. Para uma única equipe pequena, mantenha um responsável por salvar a agenda por vez e atualize o painel antes de continuar quando houver conflito.
 
-O token dá permissão de escrita no conteúdo do repositório escolhido. Crie-o com escopo mínimo, nunca o cole em mensagens, nunca o coloque no código e revogue-o nas configurações do GitHub se suspeitar de exposição.
+A chave privada do GitHub App permite gravar somente no repositório em que o App foi instalado. Mantenha-a como Secret do Worker e regenere-a se suspeitar de exposição.
 
 ## Publicação
 Em **Settings → Pages → Build and deployment**, mantenha a origem **GitHub Actions**.

@@ -30,6 +30,7 @@ jobs:
         run: |
           node --check app.js
           node --check gestao.js
+          node --check worker/index.js
       - name: Validar estrutura, IDs e referências locais
         run: node scripts/validate-site.mjs
       - name: Preparar somente os arquivos públicos do site

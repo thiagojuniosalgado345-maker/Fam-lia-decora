@@ -27,20 +27,16 @@
     </div>
   </div>
   <section class="management-card github-connection" aria-labelledby="githubConnectionTitle">
-    <div class="card-heading"><div><span class="card-kicker">Conexão segura</span><h2 id="githubConnectionTitle">Sincronizar com o GitHub</h2></div><span class="github-status" id="githubStatus" role="status" aria-live="polite">Não conectado</span></div>
-    <p class="management-help">O catálogo e a disponibilidade por data ficam publicados no arquivo do site. Os detalhes da agenda e os bloqueios são criptografados antes de serem enviados ao GitHub. A senha de criptografia e o token ficam somente na memória desta página e precisam ser informados novamente quando ela for reaberta.</p>
-    <div class="github-credentials">
-      <label>Token de acesso do GitHub<input id="githubToken" type="password" autocomplete="off" spellcheck="false" placeholder="Cole aqui seu token fine-grained"></label>
-      <label>Senha forte da agenda (mínimo 16 caracteres)<input id="agendaPassphrase" type="password" autocomplete="new-password" minlength="16" placeholder="Use uma frase longa que não utiliza em outros sites"></label>
-    </div>
-    <label class="publish-availability-control"><input id="publishAvailability" type="checkbox" disabled><span><strong>Publicar disponibilidade por data na loja</strong><small>Ative somente depois de revisar o catálogo e informar o estoque físico correto de cada peça.</small></span></label>
+    <div class="card-heading"><div><span class="card-kicker">Acesso da equipe</span><h2 id="githubConnectionTitle">Entrar na gestão</h2></div><span class="github-status" id="githubStatus" role="status" aria-live="polite">Não conectado</span></div>
+    <p class="management-help">Entre com o e-mail autorizado da Família Decora. O Cloudflare enviará um código de uso único para sua caixa de entrada. Você não precisa criar conta no GitHub nem copiar tokens; o sistema sincroniza agenda, estoque e fotos automaticamente.</p>
     <div class="form-actions github-actions">
-      <button class="button button-primary" id="connectGithub" type="button">Conectar e carregar agenda</button>
-      <button class="button button-soft" id="refreshGithub" type="button" disabled>Atualizar do GitHub</button>
-      <button class="button button-soft" id="disconnectGithub" type="button" disabled>Desconectar</button>
+      <button class="button button-primary" id="connectGithub" type="button">Entrar com e-mail</button>
+      <button class="button button-soft" id="refreshGithub" type="button" disabled>Atualizar agenda</button>
+      <button class="button button-soft" id="disconnectGithub" type="button" disabled>Sair</button>
     </div>
-    <p class="github-security-note">Crie um token <strong>Fine-grained</strong> no GitHub, limitado somente ao repositório <strong>Fam-lia-decora</strong>, com permissão <strong>Contents: Read and write</strong>. Não conceda acesso a todos os repositórios. <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer">Abrir criação de token no GitHub ↗</a></p>
-    <p class="github-security-note"><strong>Privacidade:</strong> a disponibilidade por data e o catálogo são públicos para os visitantes. Os nomes/códigos dos pedidos, observações, festas e bloqueios ficam criptografados no arquivo. Mesmo assim, prefira usar códigos internos (ex.: FD-001), nunca telefone, CPF, endereço residencial ou dados de pagamento.</p>
+    <p class="github-security-note">O código enviado por e-mail é de uso único e expira em 10 minutos. Somente o endereço liberado pela administração poderá entrar. A sessão deste navegador permanece ativa por até 8 horas.</p>
+    <label class="publish-availability-control"><input id="publishAvailability" type="checkbox" disabled><span><strong>Publicar disponibilidade por data na loja</strong><small>Ative somente depois de revisar o catálogo e informar o estoque físico correto de cada peça.</small></span></label>
+    <p class="github-security-note"><strong>Privacidade:</strong> a vitrine mostra somente catálogo e, quando ativada, disponibilidade por data. Os detalhes das festas e os bloqueios ficam criptografados pelo serviço seguro antes de serem gravados no GitHub. Evite registrar telefone, CPF, endereço residencial ou dados de pagamento.</p>
   </section>
   <div class="local-warning"><strong>Como funciona agora</strong> Ao salvar uma alteração, esta página grava uma nova versão no repositório Família Decora. Se outro aparelho tiver gravado primeiro, o painel detecta o conflito para não apagar alterações. O site público consulta os números disponíveis por data e atualiza a vitrine automaticamente.</div>
   <nav class="management-shortcuts" aria-label="Atalhos da gestão">

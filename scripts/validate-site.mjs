@@ -8,6 +8,9 @@ const required = [
   "gestao.css",
   "gestao.js",
   "data/agenda.json",
+  "worker/index.js",
+  "worker/wrangler.toml",
+  "worker/README.md",
   "assets/logo-familia-decora.webp",
   "manifest-gestao.webmanifest",
   "assets/gestao-icon-192.png",
@@ -113,8 +116,6 @@ const adminRequiredIds = [
   "productImagePreviewImage",
   "productImagePreviewTitle",
   "clearProductImage",
-  "githubToken",
-  "agendaPassphrase",
   "publishAvailability",
   "connectGithub",
   "refreshGithub",
@@ -161,12 +162,11 @@ for (const requiredFeature of [
   "blockedQuantity",
   "renderBlocksForDate",
   "calendar-day-count",
-  "GITHUB_API_URL",
+  "API_BASE_URL",
+  "apiRequest",
+  "sessionToken",
   "commitGithubSnapshot",
   "buildPublicAvailability",
-  "AES-GCM",
-  "PBKDF2-SHA-256",
-  "CRYPTO_ITERATIONS",
   "publishAvailability",
   "optimizeProductImage",
   "uploadProductImage",
@@ -241,6 +241,13 @@ for (const [date, quantities] of Object.entries(dataFile.availability.days)) {
 if (dataFile.initialized === false && dataFile.availability.enabled === true) {
   throw new Error("A disponibilidade pública não pode ser ativada antes da inicialização da agenda.");
 }
+
+const workerScript = readFileSync("worker/index.js", "utf8");
+for (const feature of ["auth/complete", "ctx.access", "AGENDA_ENCRYPTION_KEY", "SESSION_SIGNING_KEY", "createInstallationToken", "AES-GCM"]) {
+  if (!workerScript.includes(feature)) throw new Error("Funcionalidade do Worker ausente: " + feature);
+}
+const workerConfig = readFileSync("worker/wrangler.toml", "utf8");
+if (!workerConfig.includes("familia-decora-api") || !workerConfig.includes("ADMIN_EMAIL")) throw new Error("Configuração do Worker ausente.");
 
 const publishWorkflow = readFileSync(".github/workflows/deploy-pages.yml", "utf8");
 if (!publishWorkflow.includes("manifest-gestao.webmanifest")) {

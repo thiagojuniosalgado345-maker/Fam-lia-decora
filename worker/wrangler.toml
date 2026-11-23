@@ -1,0 +1,11 @@
+name = "familia-decora-api"
+main = "index.js"
+compatibility_date = "2026-11-23"
+workers_dev = true
+
+[vars]
+GITHUB_REPOSITORY = "thiagojuniosalgado345-maker/Fam-lia-decora"
+GITHUB_BRANCH = "main"
+GITHUB_APP_ID = "PREENCHER_ID_DO_GITHUB_APP"
+ADMIN_EMAIL = "PREENCHER_EMAIL_AUTORIZADO"
+ALLOWED_ORIGIN = "https://thiagojuniosalgado345-maker.github.io"
